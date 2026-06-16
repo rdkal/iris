@@ -26,12 +26,13 @@ your data (tree)  ──▶  components (tree)  ──▶  htpy nodes  ──▶
    properties. Everything else is *derived* from them. Re-theming = override a
    handful of variables.
 5. **Data-driven *and* app-like.** The same library renders a content page from
-   a data tree *and* an app shell with stateful, htmx-driven navigation.
+   a data tree *and* an app shell with stateful, fixi-driven navigation.
 6. **Framework-agnostic.** iris produces strings / async chunks. It plugs into
    FastAPI, Starlette, Django, Flask, or a plain WSGI/ASGI app with a one-line
    adapter. iris owns the view layer, never the server.
-7. **No build step.** Pure Python in, HTML + one static CSS file out. Optionally
-   sprinkle [htmx](https://htmx.org) for interactivity — still no bundler.
+7. **No build step.** Pure Python in, HTML + one static CSS file out. For
+   interactivity, iris uses [fixi](https://github.com/bigskysoftware/fixi)
+   (~1.5KB gzipped) plus a small first-party extension — still no bundler.
 8. **Typed.** Components take typed props (dataclasses / `TypedDict`). The tree
    is checkable with mypy/pyright.
 
@@ -77,13 +78,13 @@ feature.
 ```python
 from iris.hoc import with_loading, error_boundary, paginated, guarded
 
-# Lazy-load via htmx, showing a skeleton until the real content swaps in.
+# Lazy-load via fixi, showing a skeleton until the real content swaps in.
 lazy_feed = with_loading(feed, skeleton=feed_skeleton, src="/feed")
 
 # Catch render-time exceptions in a subtree and show a fallback instead.
 safe_card = error_boundary(article_card, fallback=broken_card)
 
-# Wrap a list renderer with htmx infinite-scroll pagination.
+# Wrap a list renderer with fixi infinite-scroll pagination.
 feed = paginated(article_card, page_size=20, src="/feed")
 
 # Render only if a predicate passes (auth / feature flag), else nothing.
@@ -100,43 +101,63 @@ See §6 for the full HOC catalog.
 
 ### 2.3 The data → component mapping (the core idea)
 
-When data is a heterogeneous tree (a CMS document, a JSON API payload, a
-notebook of blocks), you don't want a giant `if/elif` on node type. iris
-provides a **Registry**: register one renderer per data type, then ask iris to
-render the whole tree. iris walks the data, dispatches each node to its
-renderer by type, and recurses into children automatically.
+Views are **always written explicitly**: a function takes typed data in and
+builds the component tree out, using ordinary Python (comprehensions, `if`,
+loops). iris never generates a view for you — it only decides *which* explicit
+view to call when walking a heterogeneous data tree. There are two ways it
+finds that view, and they layer.
+
+**(a) The `__iris__` protocol — duck-typed, used if present.** Just like Python
+turns a value into text by calling `__str__`, iris turns a value into a `Node`
+by calling `__iris__` if the object defines it. This is the recommended path
+for types you own:
+
+```python
+from iris import h
+from iris.components import card, grid
+
+@dataclass
+class Article:
+    title: str
+    body: str
+    def __iris__(self) -> h.Node:          # self-rendering, duck-typed
+        return card[h.h2[self.title], h.p[self.body]]
+
+@dataclass
+class Gallery:
+    items: list[Article]
+    def __iris__(self) -> h.Node:
+        # explicit tree-building; render() recurses into each child
+        return grid(cols=2)[(render(a) for a in self.items)]
+
+render(load_document())   # walks the tree, calling __iris__ on each node
+```
+
+`render(x)` resolves a node in this order: it's already an htpy `Node` → use it;
+`str`/`None`/`False`/iterables → htpy's own rules; has `__iris__` → call it;
+otherwise → registry (below) → error. The walk is just `render` re-entering
+itself on children — the recursion is explicit in your comprehensions.
+
+**(b) The Registry — opt-in, for types you don't own or context-specific
+views.** When you can't put `__iris__` on a type (third-party/ORM model), or you
+want the *same* data to render differently in different places (a compact list
+vs. a full page), register the mapping externally instead:
 
 ```python
 from iris import Registry, h
 
-ui = Registry()
+compact = Registry()
 
-@ui.renders(Heading)
-def _(n: Heading) -> h.Node:
-    return h.h2[n.text]
+@compact.renders(Article)
+def _(a: Article) -> h.Node:
+    return h.li[a.title]          # different view of the same Article
 
-@ui.renders(Paragraph)
-def _(n: Paragraph) -> h.Node:
-    return h.p[n.text]
-
-@ui.renders(Gallery)
-def _(n: Gallery) -> h.Node:
-    # children are rendered by re-entering the registry — this is the recursion
-    return grid(cols=2)[ui.render_each(n.items)]
-
-# One call turns an arbitrary data tree into HTML.
-document: list[Block] = load_document()
-html = ui.render(document)
+compact.render(articles)          # dispatch by type: exact → MRO → fallback
 ```
 
-Dispatch rules, in order: exact type → registered base class (MRO walk) →
-a fallback renderer (`@ui.fallback`) → error. This keeps the mapping declarative
-and open for extension: add a node type, add a renderer, done.
-
-> **Why a registry instead of methods on the data?** It keeps your data classes
-> free of presentation, lets the same data render differently in different
-> contexts (e.g. a compact registry vs. a full registry), and makes the
-> data→view boundary explicit.
+A `Registry` is itself callable as a renderer, so a registry and `__iris__`
+types compose in the same tree. Both routes ultimately call plain, explicit
+view functions — the protocol/registry only choose *which* one.
 
 ---
 
@@ -246,7 +267,7 @@ iris supports two modes that share the same components.
 ### 5.1 Data-driven pages
 
 A page is a function from request/data to a full document. Good for content,
-SSR, SEO, htmx-free flows.
+SSR, SEO, JS-free flows.
 
 ```python
 from iris.app import page
@@ -260,9 +281,10 @@ def article_page(slug: str) -> h.Node:
 ### 5.2 App-like navigation (the "app shell")
 
 For app-feel UIs, iris provides `AppShell`: a persistent header + bottom tab bar
-(mobile-native pattern) with an htmx-swapped content region. Tabs swap the main
-region without a full reload; the URL updates via `hx-push-url`. This gives an
-SPA feel with zero client framework.
+(mobile-native pattern) with a fixi-swapped content region. Tabs issue an
+`fx-action` request targeting the main region (`fx-target`, `fx-swap`) without a
+full reload; the URL updates via iris's fixi history extension (fixi core has no
+push-URL — see §7). This gives an SPA feel with zero client framework.
 
 ```python
 from iris.app import AppShell, Tab
@@ -280,7 +302,7 @@ shell = AppShell(
 def root() -> h.Node:
     return shell.render(active="Home", content=home_view())
 
-# Each tab endpoint returns just the inner fragment for htmx swaps:
+# Each tab endpoint returns just the inner fragment for fixi swaps:
 @partial("/search")
 def search_view() -> h.Node: ...
 ```
@@ -290,7 +312,7 @@ def search_view() -> h.Node: ...
 - **Back/forward & deep links** work because every tab has a real URL.
 
 `partial` vs `page`: a `page` returns a full `<html>` document; a `partial`
-returns a fragment intended for htmx swaps. The same view functions are reused
+returns a fragment intended for fixi swaps. The same view functions are reused
 in both.
 
 ---
@@ -299,15 +321,15 @@ in both.
 
 | HOC                 | What it does                                                        |
 | ------------------- | ------------------------------------------------------------------ |
-| `with_loading`      | htmx lazy-load; show `skeleton` until `src` content swaps in       |
+| `with_loading`      | fixi lazy-load; show `skeleton` until `src` content swaps in       |
 | `error_boundary`    | Catch exceptions in a subtree; render `fallback` instead           |
-| `paginated`         | htmx infinite-scroll / "load more" over a list renderer            |
+| `paginated`         | fixi infinite-scroll / "load more" over a list renderer            |
 | `list_of`           | Map a single-item renderer over an iterable (+ empty state)        |
 | `guarded`           | Render only if a predicate over context passes (auth/flags)        |
 | `memoized`          | Cache rendered output by a key fn (per-process / pluggable cache)  |
 | `responsive`        | Show/hide or swap a subtree by breakpoint (`show_on`, `hide_on`)   |
 | `with_skeleton`     | Attach a matching skeleton placeholder to a component              |
-| `polling`           | htmx `hx-trigger="every Ns"` live refresh                          |
+| `polling`           | Live refresh via iris's fixi polling extension (`every Ns`)        |
 | `with_a11y`         | Inject ARIA roles/labels and ensure focus order for a subtree      |
 
 All HOCs share one signature shape so they compose cleanly:
@@ -352,12 +374,27 @@ def home(): return render(home_view())
 def home(request): return HttpResponse(render(home_view()))
 ```
 
-### htmx helpers
+### fixi helpers + the iris fixi extension
 
-`iris.integrations.htmx` provides typed wrappers (`hx_get`, `hx_swap`,
-`trigger`, `push_url`) and an `hx_partial` decorator that returns a fragment
-plus the right `Vary`/`HX-*` headers. iris detects the `HX-Request` header to
-return a fragment vs. a full document from the *same* view function.
+`iris.integrations.fixi` provides typed wrappers that emit fixi's six
+attributes (`fx_action`, `fx_method`, `fx_trigger`, `fx_target`, `fx_swap`). The
+`@partial`/`@page` decorators (`iris.app`, §5.2) handle the rest: they detect
+fixi's `FX-Request: true` header to return a fragment vs. a full document from
+the *same* view function, and set the appropriate `Vary` header.
+
+fixi is intentionally tiny and omits several things iris's navigation/HOCs need.
+iris ships one small first-party script, `iris-fixi.js`, that adds them purely
+through fixi's event API (`fx:config`, `fx:before`, `fx:swapped`) — no fork:
+
+- **history / push-URL** — update `location` and handle back/forward (powers the
+  app shell's deep links).
+- **polling** — `every Ns` triggers (powers the `polling` HOC).
+- **loading indicators** — toggle a class / swap a skeleton during the request
+  (powers `with_loading`).
+- **debounce** and **confirm** — convenience hooks on `fx:config`.
+
+`document()` can include both `fixi.js` and `iris-fixi.js` automatically (opt-out
+for pure data-driven pages that need no JS).
 
 ---
 
@@ -371,7 +408,7 @@ Built from the primitives + tokens. All dark-first, minimal, accessible.
   key-value, badge/tag, avatar, stat, empty-state
 - **Feedback:** skeleton, spinner, toast, banner/alert, progress
 - **Forms:** field, input, textarea, select, switch, checkbox, button, form
-  (label/error wiring + htmx submit helpers)
+  (label/error wiring + fixi submit helpers)
 - **Overlay:** sheet/drawer (bottom-sheet on mobile), modal, popover, menu
 - **Icons:** a small inline-SVG set (stroke icons, themed via `currentColor`)
 
@@ -454,13 +491,15 @@ iris/
   components/
     layout.py  nav.py  data.py  feedback.py  forms.py  overlay.py  icons.py
   integrations/
-    fastapi.py  starlette.py  flask.py  django.py  htmx.py
+    fastapi.py  starlette.py  flask.py  django.py  fixi.py
   gallery/
     __init__.py          # gallery registry + @example
     build.py             # static site builder ( -m iris.gallery build )
     theme.py             # gallery chrome (phone frame, code panel)
 assets/
   iris.css               # generated reference stylesheet (also producible at runtime)
+  fixi.js                # vendored fixi (~1.5KB gzip)
+  iris-fixi.js           # first-party fixi extension: history, polling, indicators
 docs/                    # built GitHub Pages output (gitignored or committed)
 examples/
   fastapi_app/           # end-to-end reference app (data-driven + app shell)
@@ -472,21 +511,28 @@ pyproject.toml
 
 ---
 
-## 11. Open questions / decisions to confirm
+## 11. Decisions
 
-1. **Name & package.** Repo is `iris`; assuming the import name is `iris`.
-2. **Min Python.** Proposed **3.11+** (for `Self`, better typing, `tomllib`).
-   htpy targets modern Python anyway.
-3. **htmx as a hard dependency?** Proposed: htmx is **optional** — data-driven
-   pages work with zero JS; the app-shell / HOCs that need interactivity emit
-   htmx attributes and document that you must include the htmx script.
-4. **Context for cross-cutting data** (current user, theme, request): lean on
+Resolved:
+
+1. **Min Python: 3.11+** (`Self`, better typing, `tomllib`); matches htpy's
+   modern-Python stance.
+2. **Interactivity: fixi, not htmx.** fixi is vendored and iris adds the missing
+   pieces (history, polling, indicators) via a small first-party extension
+   (§7). Data-driven pages still work with zero JS.
+3. **Dispatch: explicit views, found via the `__iris__` protocol (duck-typed,
+   default) with an opt-in `Registry`** for unowned/context-specific types
+   (§2.3). Views are never auto-generated.
+4. **Docs: static GitHub Pages**, built from the gallery into a Pages artifact
+   on push to `main` (§9).
+
+Still to confirm:
+
+5. **Context for cross-cutting data** (current user, theme, request): lean on
    htpy's `Context` (provider/consumer) so HOCs like `guarded` read context
    without prop-drilling. Confirm this over a custom context.
-5. **Icons:** ship a curated inline-SVG set vs. depend on an icon font. Proposed:
+6. **Icons:** ship a curated inline-SVG set vs. depend on an icon font. Proposed:
    inline SVG (themeable via `currentColor`, no extra request).
-6. **Docs hosting:** GitHub Pages from `docs/` artifact (above). Confirm branch
-   strategy (`main` → Pages).
 
 ---
 
@@ -497,6 +543,6 @@ pyproject.toml
 3. `Registry` (data→component mapping) + a couple of data-display components.
 4. FastAPI integration (`IrisResponse`) + a minimal example app.
 5. HOCs: `list_of`, `with_loading`, `error_boundary`, `paginated`.
-6. App shell + navigation (bottom tabs / side rail) + htmx helpers.
+6. App shell + navigation (bottom tabs / side rail) + fixi helpers + `iris-fixi.js`.
 7. Gallery framework + static build + GitHub Pages workflow.
 8. Fill out the component library + forms + overlays.
