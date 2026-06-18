@@ -1,175 +1,134 @@
 # iris — Design
 
-A small, server-side UI library for Python, built on [htpy](https://htpy.dev).
+A small, server-side UI toolkit for Python, built on [htpy](https://htpy.dev).
 
-> You have data. Data is a tree. iris maps that tree to a tree of
-> **components**, which htpy renders to a tree of **HTML**. No build step, no
-> JavaScript framework, no template language — just Python functions.
-
-```
-your data (tree)  ──▶  components (tree)  ──▶  htpy nodes  ──▶  HTML (tree)
-```
-
----
-
-## 1. Goals & principles
-
-1. **Thin over htpy.** iris never hides htpy. Everything iris returns *is* an
-   htpy `Node`, so users can always drop down to raw htpy and back. We add
-   composition, a design system, and conventions — not a wall.
-2. **Mobile first.** Every primitive is designed for a narrow viewport first
-   and enhances upward. Touch targets, bottom navigation, single-column stacks
-   are the defaults.
-3. **Dark, minimal, calm.** The default theme is dark. The visual language is
-   flat, high-contrast-where-it-matters, generous whitespace, one accent color.
-4. **Few CSS variables.** The entire look is driven by ~12 CSS custom
-   properties. Everything else is *derived* from them. Re-theming = override a
-   handful of variables.
-5. **Data-driven *and* app-like.** The same library renders a content page from
-   a data tree *and* an app shell with stateful, fixi-driven navigation.
-6. **Framework-agnostic.** iris produces strings / async chunks. It plugs into
-   FastAPI, Starlette, Django, Flask, or a plain WSGI/ASGI app with a one-line
-   adapter. iris owns the view layer, never the server.
-7. **No build step.** Pure Python in, HTML + one static CSS file out. For
-   interactivity, iris uses [fixi](https://github.com/bigskysoftware/fixi)
-   (~1.5KB gzipped) plus a small first-party extension — still no bundler.
-8. **Typed.** Components take typed props (dataclasses / `TypedDict`). The tree
-   is checkable with mypy/pyright.
-
----
-
-## 2. Mental model
-
-### 2.1 Components
-
-A **component** is a plain function from props to an htpy `Node`:
+You build pages by **composing components** — plain function calls that look and
+nest just like htpy, but hand you ready-made UI pieces (`Button`, `Card`,
+`Grid`, `Stack`, …) that are dark, minimal, and mobile-first by default. Browse
+them all, with their source, on the GitHub Pages gallery.
 
 ```python
-from dataclasses import dataclass
-from iris import h
-from iris.components import card, stack
+from iris import Page, Stack, Grid, Card, Button, h
 
-@dataclass
-class Article:
-    title: str
-    body: str
-    tags: list[str]
-
-def article_card(a: Article) -> h.Node:
-    return card[
-        h.h2[a.title],
-        h.p[a.body],
-        stack(direction="row", gap=1)[(h.span(".tag")[t] for t in a.tags)],
+Page(title="Today")[
+    Stack(gap=3)[
+        h.h1["Menu"],
+        Grid(cols=2)[
+            Card[ h.h3["Eggs"],  h.p["with spam"] ],
+            Card[ h.h3["Bacon"], h.p["with eggs"] ],
+        ],
+        Button(".primary", fx_action="/order")["Order"],
     ]
+]
 ```
-
-`h` is iris's re-export of htpy plus a few extra elements/helpers, so users
-import from one place: `from iris import h`.
-
-Components are just functions, so all of Python composes them: loops,
-comprehensions, conditionals, decorators, modules.
-
-### 2.2 Higher-order components (HOCs)
-
-A **higher-order component** takes a component (or props) and returns a
-component, adding behavior without touching the original. This is the headline
-feature.
-
-```python
-from iris.hoc import with_loading, error_boundary, paginated, guarded
-
-# Lazy-load via fixi, showing a skeleton until the real content swaps in.
-lazy_feed = with_loading(feed, skeleton=feed_skeleton, src="/feed")
-
-# Catch render-time exceptions in a subtree and show a fallback instead.
-safe_card = error_boundary(article_card, fallback=broken_card)
-
-# Wrap a list renderer with fixi infinite-scroll pagination.
-feed = paginated(article_card, page_size=20, src="/feed")
-
-# Render only if a predicate passes (auth / feature flag), else nothing.
-admin_panel = guarded(panel, when=lambda ctx: ctx.user.is_admin)
-```
-
-HOCs compose like decorators:
-
-```python
-feed = with_loading(error_boundary(paginated(article_card)))
-```
-
-See §6 for the full HOC catalog.
-
-### 2.3 The data → component mapping (the core idea)
-
-Views are **always written explicitly**: a function takes typed data in and
-builds the component tree out, using ordinary Python (comprehensions, `if`,
-loops). iris never generates a view for you — it only decides *which* explicit
-view to call when walking a heterogeneous data tree. There are two ways it
-finds that view, and they layer.
-
-**(a) The `__iris__` protocol — duck-typed, used if present.** Just like Python
-turns a value into text by calling `__str__`, iris turns a value into a `Node`
-by calling `__iris__` if the object defines it. This is the recommended path
-for types you own:
-
-```python
-from iris import h
-from iris.components import card, grid
-
-@dataclass
-class Article:
-    title: str
-    body: str
-    def __iris__(self) -> h.Node:          # self-rendering, duck-typed
-        return card[h.h2[self.title], h.p[self.body]]
-
-@dataclass
-class Gallery:
-    items: list[Article]
-    def __iris__(self) -> h.Node:
-        # explicit tree-building; render() recurses into each child
-        return grid(cols=2)[(render(a) for a in self.items)]
-
-render(load_document())   # walks the tree, calling __iris__ on each node
-```
-
-`render(x)` resolves a node in this order: it's already an htpy `Node` → use it;
-`str`/`None`/`False`/iterables → htpy's own rules; has `__iris__` → call it;
-otherwise → registry (below) → error. The walk is just `render` re-entering
-itself on children — the recursion is explicit in your comprehensions.
-
-**(b) The Registry — opt-in, for types you don't own or context-specific
-views.** When you can't put `__iris__` on a type (third-party/ORM model), or you
-want the *same* data to render differently in different places (a compact list
-vs. a full page), register the mapping externally instead:
-
-```python
-from iris import Registry, h
-
-compact = Registry()
-
-@compact.renders(Article)
-def _(a: Article) -> h.Node:
-    return h.li[a.title]          # different view of the same Article
-
-compact.render(articles)          # dispatch by type: exact → MRO → fallback
-```
-
-A `Registry` is itself callable as a renderer, so a registry and `__iris__`
-types compose in the same tree. Both routes ultimately call plain, explicit
-view functions — the protocol/registry only choose *which* one.
 
 ---
 
-## 3. Theming: few CSS variables
+## 1. Principles
 
-The whole design system is a small set of custom properties on `:root`.
-Dark is the default; light is the same variables with different values.
+1. **Thin over htpy.** Every component returns an htpy `Node`. Drop to raw htpy
+   any time and back — they mix freely.
+2. **Compose by nesting.** The only mental model is "call components, nest them
+   with `[...]`, loop with comprehensions." No registries, no dispatch, no magic.
+3. **Mobile first, dark, minimal.** Sensible defaults for a phone screen and a
+   calm dark theme; you rarely pass style props.
+4. **Few CSS variables.** ~12 custom properties drive the whole look; everything
+   else is derived. Re-theme by overriding a handful.
+5. **Framework-agnostic.** Components render to a string or async stream; FastAPI
+   / Flask / Django adapters are one-liners. iris owns the view, never the server.
+6. **No build step.** Pure Python in, HTML + one CSS file out. Optional
+   interactivity via [fixi](https://github.com/bigskysoftware/fixi) (~1.5KB).
+7. **Typed.** Components take typed props; the tree checks with mypy/pyright.
+
+---
+
+## 2. Components are htpy calls
+
+A component is called exactly like an htpy element:
+
+- `Comp(...)` sets **props** — htpy's class/id shorthand (`".primary"`,
+  `"#main"`), keyword attributes, and `fx_*` attributes for fixi.
+- `Comp[...]` sets **children** — the same bracket syntax as htpy, so strings,
+  nodes, lists, generators, and conditionals all work.
+
+```python
+from iris import Stack, Card, Button, h
+
+Stack(gap=2)[
+    Card[ h.h2["Title"], h.p["Body"] ],
+    Button(".primary", disabled=False)["Save"],
+    Button(".ghost", fx_action="/cancel", fx_swap="outerHTML")["Cancel"],
+]
+```
+
+`h` is iris's re-export of htpy, so raw tags (`h.div`, `h.span`) sit right next
+to components.
+
+### Writing your own component
+
+It's just a function that returns a node — compose the built-ins:
+
+```python
+from iris import component, Card, Row, Tag, h
+
+@component
+def ArticleCard(title: str, body: str, tags: list[str]) -> h.Node:
+    return Card[
+        h.h2[title],
+        h.p[body],
+        Row(gap=1)[(Tag[t] for t in tags)],
+    ]
+
+ArticleCard(title="Hello", body="…", tags=["py", "ui"])
+```
+
+The `@component` decorator is a thin wrapper that gives your function the same
+htpy-style `(...)`/`[...]` calling convention as the built-ins (and merges
+class/`fx_*` props passed at the call site). A component that takes content uses
+the `[...]` slot; one that's fully described by props just takes `(...)`.
+
+### Rendering a collection is a comprehension
+
+No special list API — explicit Python:
+
+```python
+Stack[ (ArticleCard(title=a.title, body=a.body, tags=a.tags) for a in articles) ]
+```
+
+If your data is a tree, you write the recursion yourself with normal function
+calls — a `Section` component that maps over its children, etc. That's the whole
+"data tree → component tree" story: ordinary functions and comprehensions.
+
+---
+
+## 3. Component set (initial)
+
+All dark-first, minimal, accessible, mobile-first. Each takes typed props and
+the htpy `[...]` slot where it holds content.
+
+- **Layout:** `Page`, `Container`, `Stack`, `Row`, `Grid`, `Center`, `Divider`,
+  `Spacer`
+- **Surfaces:** `Card`, `Sheet`, `Panel`
+- **Navigation:** `AppShell`, `Header`, `Tabs`, `NavLink`, `Breadcrumbs`
+- **Data display:** `List`, `Table` (stacks into rows on mobile), `Badge`,
+  `Tag`, `Avatar`, `Stat`, `Empty`
+- **Forms:** `Form`, `Field`, `Input`, `Textarea`, `Select`, `Switch`,
+  `Checkbox`, `Button`
+- **Feedback:** `Skeleton`, `Spinner`, `Toast`, `Banner`, `Progress`
+- **Overlay:** `Drawer` (bottom-sheet on mobile), `Modal`, `Menu`, `Popover`
+- **Icons:** a small inline-SVG set (stroke icons, themed via `currentColor`)
+
+---
+
+## 4. Theme: few CSS variables
+
+The whole design system is a small set of custom properties on `:root`. Dark is
+the default; light is the same variables with different values.
 
 ```css
 :root {
   /* color — 6 vars */
-  --bg:      #0b0c0e;   /* page background            */
+  --bg:      #0b0c0e;   /* page background             */
   --surface: #15171b;   /* cards, sheets, nav          */
   --text:    #e7e9ec;   /* primary text                */
   --muted:   #8b9099;   /* secondary text, icons       */
@@ -178,282 +137,134 @@ Dark is the default; light is the same variables with different values.
 
   /* shape & rhythm — 4 vars */
   --space:   0.5rem;    /* base spacing unit (scale = multiples) */
-  --radius:  0.75rem;   /* corner rounding              */
+  --radius:  0.75rem;   /* corner rounding             */
   --font:    system-ui, sans-serif;
   --measure: 38rem;     /* max readable line / container width */
 }
 ```
 
-Everything else is **derived** in CSS from these, so the knob count stays tiny:
+Everything else is **derived** from these, so the knob count stays tiny:
 
 ```css
-/* spacing scale = multiples of --space (no new variables) */
 .stack > * + * { margin-top: calc(var(--space) * var(--gap, 2)); }
-
-/* "elevated" surfaces nudge lightness without a new color var */
-.elevated { background: color-mix(in oklab, var(--surface), white 4%); }
-
-/* hover/active states derive from --accent */
-.btn:hover { background: color-mix(in oklab, var(--accent), white 12%); }
+.elevated      { background: color-mix(in oklab, var(--surface), white 4%); }
+.btn:hover     { background: color-mix(in oklab, var(--accent), white 12%); }
 ```
 
-**Re-theming** is overriding a few variables — no recompile, no rebuild:
+Re-theming overrides a few variables — no recompile:
 
 ```python
 from iris.theme import Theme
-
 brand = Theme(accent="#22d3aa", radius="0.25rem")   # sharper, teal
-# emits :root { --accent:#22d3aa; --radius:0.25rem }  (only the diffs)
 ```
 
-Light mode ships as one extra block toggled by `prefers-color-scheme` and/or a
-`data-theme` attribute, so a user-facing toggle is a single attribute flip:
-
-```css
-[data-theme="light"] {
-  --bg:#ffffff; --surface:#f5f6f8; --text:#13151a;
-  --muted:#5b6470; --border:#e3e6ea;
-}
-```
-
-### CSS delivery
-
-One static stylesheet, `iris.css`, generated from the tokens at build/startup —
-no per-request inlining, fully cacheable. Layout primitives use a fixed,
-hand-written set of utility classes (`.stack`, `.row`, `.grid`, `.container`,
-`.card`, …); we deliberately **do not** ship a Tailwind-style atomic framework.
-The CSS file is small enough to read in one sitting, which is the point.
-
-```python
-from iris.theme import stylesheet
-app.mount("/static/iris.css", stylesheet(brand))   # or write it to disk once
-```
+Light mode is one extra block toggled by `prefers-color-scheme` and/or a
+`data-theme="light"` attribute, so a user-facing toggle is a single attribute
+flip. iris ships one static, cacheable stylesheet, `iris.css`, generated from
+the tokens; component classes (`.stack`, `.grid`, `.card`, …) are hand-written,
+not atomic utilities — the file is small enough to read in a sitting.
 
 ---
 
-## 4. Layout primitives (mobile-first)
+## 5. Mobile-first layout & navigation
 
-A handful of composable primitives, each a thin div + utility class. Defaults
-assume a phone; props widen behavior at breakpoints.
+Layout primitives assume a phone first and widen with one `--measure`-based
+media query — base styles need no media query at all. `Grid(cols=2)` is two
+columns on a tablet and one on a phone; `Row` wraps.
 
-| Primitive            | Purpose                                          |
-| -------------------- | ------------------------------------------------ |
-| `container`          | Centered column capped at `--measure`            |
-| `stack`              | Vertical flow with consistent gap (the default)  |
-| `row`                | Horizontal flex; wraps on small screens          |
-| `grid(cols=…)`       | Responsive grid; collapses to 1 col on mobile    |
-| `center`             | Centers child both axes                          |
-| `spacer` / `divider` | Flexible gap / hairline                          |
-| `sheet`              | Surface card (`--surface`, `--radius`, padding)  |
+iris covers both page styles, using the same components:
 
-```python
-container[
-    stack(gap=3)[
-        h.h1["Today"],
-        grid(cols=2)[(article_card(a) for a in articles)],  # 1 col on phones
-    ]
-]
-```
+- **Data-driven pages** — a view is a function returning a `Page`. Great for
+  content, SSR, SEO; works with zero JS.
 
-Breakpoints are derived, not configurable per-call: one `--measure`-based
-media query. Mobile-first means the base styles need no media query at all.
+  ```python
+  def article_page(slug: str) -> h.Node:
+      a = repo.get(slug)
+      return Page(title=a.title)[ Container[ ArticleCard(a.title, a.body, a.tags) ] ]
+  ```
 
----
+- **App-like shell** — `AppShell` gives a persistent header + bottom tab bar
+  (thumb-reachable; becomes a side rail on wide screens via one media query).
+  Tabs swap the content region with fixi instead of full reloads, with real URLs
+  so back/forward and deep links work.
 
-## 5. Navigation: data-driven pages *and* app-like shell
-
-iris supports two modes that share the same components.
-
-### 5.1 Data-driven pages
-
-A page is a function from request/data to a full document. Good for content,
-SSR, SEO, JS-free flows.
-
-```python
-from iris.app import page
-
-@page("/articles/{slug}")
-def article_page(slug: str) -> h.Node:
-    a = repo.get(slug)
-    return document(title=a.title)[ container[ article_card(a) ] ]
-```
-
-### 5.2 App-like navigation (the "app shell")
-
-For app-feel UIs, iris provides `AppShell`: a persistent header + bottom tab bar
-(mobile-native pattern) with a fixi-swapped content region. Tabs issue an
-`fx-action` request targeting the main region (`fx-target`, `fx-swap`) without a
-full reload; the URL updates via iris's fixi history extension (fixi core has no
-push-URL — see §7). This gives an SPA feel with zero client framework.
-
-```python
-from iris.app import AppShell, Tab
-
-shell = AppShell(
-    title="iris",
-    tabs=[
-        Tab("Home",    icon="home",     src="/home"),
-        Tab("Search",  icon="search",   src="/search"),
-        Tab("Profile", icon="user",     src="/me"),
-    ],
-)
-
-@page("/")
-def root() -> h.Node:
-    return shell.render(active="Home", content=home_view())
-
-# Each tab endpoint returns just the inner fragment for fixi swaps:
-@partial("/search")
-def search_view() -> h.Node: ...
-```
-
-- **Mobile:** bottom tab bar (thumb-reachable), header collapses.
-- **Wider:** the same tabs render as a side rail (one media query, no new API).
-- **Back/forward & deep links** work because every tab has a real URL.
-
-`partial` vs `page`: a `page` returns a full `<html>` document; a `partial`
-returns a fragment intended for fixi swaps. The same view functions are reused
-in both.
+  ```python
+  AppShell(title="iris", tabs=[
+      Tab("Home", icon="home", src="/home"),
+      Tab("Search", icon="search", src="/search"),
+      Tab("Profile", icon="user", src="/me"),
+  ])[ home_view() ]
+  ```
 
 ---
 
-## 6. Higher-order component catalog
+## 6. Interactivity: fixi (optional)
 
-| HOC                 | What it does                                                        |
-| ------------------- | ------------------------------------------------------------------ |
-| `with_loading`      | fixi lazy-load; show `skeleton` until `src` content swaps in       |
-| `error_boundary`    | Catch exceptions in a subtree; render `fallback` instead           |
-| `paginated`         | fixi infinite-scroll / "load more" over a list renderer            |
-| `list_of`           | Map a single-item renderer over an iterable (+ empty state)        |
-| `guarded`           | Render only if a predicate over context passes (auth/flags)        |
-| `memoized`          | Cache rendered output by a key fn (per-process / pluggable cache)  |
-| `responsive`        | Show/hide or swap a subtree by breakpoint (`show_on`, `hide_on`)   |
-| `with_skeleton`     | Attach a matching skeleton placeholder to a component              |
-| `polling`           | Live refresh via iris's fixi polling extension (`every Ns`)        |
-| `with_a11y`         | Inject ARIA roles/labels and ensure focus order for a subtree      |
+For app-like behavior, components emit [fixi](https://github.com/bigskysoftware/fixi)
+attributes via `fx_*` kwargs (`fx_action`, `fx_method`, `fx_target`, `fx_swap`,
+`fx_trigger`). fixi is ~1.5KB and deliberately omits history, polling, and
+loading indicators — so iris ships a tiny first-party `iris-fixi.js` that adds
+exactly those through fixi's event API (`fx:config`, `fx:before`, `fx:swapped`).
+`Page`/`AppShell` can include both scripts automatically (opt-out for pure
+data-driven pages).
 
-All HOCs share one signature shape so they compose cleanly:
-
-```python
-Component = Callable[P, h.Node]
-HOC       = Callable[[Component], Component]   # plus config via closure/partial
-```
+iris detects fixi's `FX-Request: true` header so the *same* view function can
+return a full `Page` for a normal request and just the inner fragment for a
+fixi swap.
 
 ---
 
 ## 7. Framework integration
 
-iris produces a `Node`; adapters turn it into a framework response. Streaming
-uses htpy's `iter_chunks()` for low time-to-first-byte.
-
-### FastAPI / Starlette (async + streaming)
+Components produce a `Node`; adapters turn it into a response. Streaming uses
+htpy's `iter_chunks()` for low time-to-first-byte.
 
 ```python
-from fastapi import FastAPI
+# FastAPI / Starlette — streams text/html
 from iris.integrations.fastapi import IrisResponse
-
-app = FastAPI()
 
 @app.get("/")
 def home() -> IrisResponse:
-    return IrisResponse(document(title="Home")[container[home_view()]])
-    # IrisResponse streams node.iter_chunks() with text/html
-```
+    return IrisResponse(article_page("hello"))
 
-### Anything else
+# Anything else
+from iris import render          # -> str
+from iris import render_stream   # -> Iterator[str] / AsyncIterator[str]
 
-```python
-from iris import render            # -> str
-from iris import render_stream      # -> Iterator[str] / AsyncIterator[str]
-
-# Flask
 @app.get("/")
-def home(): return render(home_view())
-
-# Django
-def home(request): return HttpResponse(render(home_view()))
+def home(): return render(article_page("hello"))   # Flask / Django / WSGI
 ```
 
-### fixi helpers + the iris fixi extension
-
-`iris.integrations.fixi` provides typed wrappers that emit fixi's six
-attributes (`fx_action`, `fx_method`, `fx_trigger`, `fx_target`, `fx_swap`). The
-`@partial`/`@page` decorators (`iris.app`, §5.2) handle the rest: they detect
-fixi's `FX-Request: true` header to return a fragment vs. a full document from
-the *same* view function, and set the appropriate `Vary` header.
-
-fixi is intentionally tiny and omits several things iris's navigation/HOCs need.
-iris ships one small first-party script, `iris-fixi.js`, that adds them purely
-through fixi's event API (`fx:config`, `fx:before`, `fx:swapped`) — no fork:
-
-- **history / push-URL** — update `location` and handle back/forward (powers the
-  app shell's deep links).
-- **polling** — `every Ns` triggers (powers the `polling` HOC).
-- **loading indicators** — toggle a class / swap a skeleton during the request
-  (powers `with_loading`).
-- **debounce** and **confirm** — convenience hooks on `fx:config`.
-
-`document()` can include both `fixi.js` and `iris-fixi.js` automatically (opt-out
-for pure data-driven pages that need no JS).
-
 ---
 
-## 8. Component library (initial set)
-
-Built from the primitives + tokens. All dark-first, minimal, accessible.
-
-- **Layout:** container, stack, row, grid, center, sheet, divider, spacer
-- **Navigation:** app shell, header, bottom tabs / side rail, breadcrumbs, link
-- **Data display:** card, list, table (responsive → stacked rows on mobile),
-  key-value, badge/tag, avatar, stat, empty-state
-- **Feedback:** skeleton, spinner, toast, banner/alert, progress
-- **Forms:** field, input, textarea, select, switch, checkbox, button, form
-  (label/error wiring + fixi submit helpers)
-- **Overlay:** sheet/drawer (bottom-sheet on mobile), modal, popover, menu
-- **Icons:** a small inline-SVG set (stroke icons, themed via `currentColor`)
-
-Each ships with a typed props dataclass and a skeleton variant where it makes
-sense (so `with_loading`/`with_skeleton` work out of the box).
-
----
-
-## 9. The showcase / docs site (GitHub Pages)
+## 8. The showcase / docs site (GitHub Pages)
 
 A live gallery where every component is shown **rendered** next to the **exact
-Python that produced it** — the fastest way for newcomers to start.
+Python that produced it** — the fastest way to start.
 
-### How it works
+- A `@gallery.example` decorator registers an example. iris captures the source
+  with `inspect.getsource`, renders the component, and pairs them.
 
-- A `@gallery.example` decorator registers a component example. iris captures
-  the source with `inspect.getsource`, renders the component, and pairs them.
+  ```python
+  from iris.gallery import gallery
+  from iris import Row, Button
 
-```python
-from iris.gallery import gallery
+  @gallery.example("Buttons", "Primary & ghost")
+  def buttons():
+      return Row(gap=2)[ Button(".primary")["Save"], Button(".ghost")["Cancel"] ]
+  ```
 
-@gallery.example("Buttons", "Primary & ghost")
-def buttons() -> h.Node:
-    return row(gap=2)[
-        button(".primary")["Save"],
-        button(".ghost")["Cancel"],
-    ]
-```
-
-- Each example renders as a **panel**: a phone-frame live preview on top, a
-  syntax-highlighted, copy-able code block below, plus a light/dark toggle and a
-  "open in new tab" link. This dogfoods iris — the gallery is built *with* iris.
-- The gallery is rendered to **static HTML** by a build script
-  (`python -m iris.gallery build -o docs/`) and published to GitHub Pages. No
-  server needed for the docs; everything is pre-rendered.
-
-### Deployment
-
-`.github/workflows/pages.yml` builds the static gallery into `docs/` (or an
-artifact) on every push to the main branch and deploys to GitHub Pages:
+- Each example renders as a panel: a phone-frame live preview, a
+  syntax-highlighted, copy-able code block, and a light/dark toggle. The gallery
+  is built *with* iris (dogfooding).
+- A build command renders the gallery to static HTML
+  (`python -m iris.gallery build -o _site`); a GitHub Action publishes it to
+  GitHub Pages on push to `main`. No server needed for the docs.
 
 ```yaml
+# .github/workflows/pages.yml
 name: Deploy gallery
-on:
-  push: { branches: [main] }
+on: { push: { branches: [main] } }
 permissions: { pages: write, id-token: write, contents: read }
 jobs:
   build:
@@ -473,76 +284,49 @@ jobs:
     steps: [ { uses: actions/deploy-pages@v4 } ]
 ```
 
-The same gallery can also be served live (FastAPI route) during development for
-hot-reload via the dev server.
-
 ---
 
-## 10. Project layout
+## 9. Project layout
 
 ```
 iris/
-  __init__.py            # public API: h, render, render_stream, Registry, document
-  core.py                # Component/Node types, Registry, render, context glue
-  html.py                # re-export of htpy + iris-specific elements/helpers (h)
+  __init__.py            # public API: components, h, component, render, render_stream
+  core.py                # @component wrapper, Node helpers, render/render_stream
+  html.py                # re-export of htpy + iris extras (h)
   theme.py               # Theme dataclass, tokens, stylesheet() generator
-  hoc.py                 # higher-order components (§6)
-  app.py                 # page/partial decorators, AppShell, Tab, document()
   components/
-    layout.py  nav.py  data.py  feedback.py  forms.py  overlay.py  icons.py
+    layout.py  surfaces.py  nav.py  data.py  forms.py  feedback.py  overlay.py  icons.py
   integrations/
-    fastapi.py  starlette.py  flask.py  django.py  fixi.py
+    fastapi.py  starlette.py  flask.py  django.py
   gallery/
     __init__.py          # gallery registry + @example
     build.py             # static site builder ( -m iris.gallery build )
-    theme.py             # gallery chrome (phone frame, code panel)
 assets/
-  iris.css               # generated reference stylesheet (also producible at runtime)
-  fixi.js                # vendored fixi (~1.5KB gzip)
-  iris-fixi.js           # first-party fixi extension: history, polling, indicators
-docs/                    # built GitHub Pages output (gitignored or committed)
+  iris.css   fixi.js   iris-fixi.js
 examples/
-  fastapi_app/           # end-to-end reference app (data-driven + app shell)
+  fastapi_app/           # reference app (data-driven page + app shell)
 .github/workflows/pages.yml
-DESIGN.md
-README.md
-pyproject.toml
+DESIGN.md  README.md  pyproject.toml
 ```
 
 ---
 
-## 11. Decisions
+## 10. Decisions
 
-Resolved:
+- **Min Python:** 3.11+.
+- **Composition model:** components are htpy-style calls; compose by nesting and
+  comprehensions. No registry, no protocol dispatch.
+- **Interactivity:** fixi (vendored) + a small first-party `iris-fixi.js`;
+  data-driven pages need zero JS.
+- **Docs:** static gallery → GitHub Pages on push to `main`.
+- **Icons:** curated inline-SVG set, themed via `currentColor`.
 
-1. **Min Python: 3.11+** (`Self`, better typing, `tomllib`); matches htpy's
-   modern-Python stance.
-2. **Interactivity: fixi, not htmx.** fixi is vendored and iris adds the missing
-   pieces (history, polling, indicators) via a small first-party extension
-   (§7). Data-driven pages still work with zero JS.
-3. **Dispatch: explicit views, found via the `__iris__` protocol (duck-typed,
-   default) with an opt-in `Registry`** for unowned/context-specific types
-   (§2.3). Views are never auto-generated.
-4. **Docs: static GitHub Pages**, built from the gallery into a Pages artifact
-   on push to `main` (§9).
+## 11. Roadmap (suggested order)
 
-Still to confirm:
-
-5. **Context for cross-cutting data** (current user, theme, request): lean on
-   htpy's `Context` (provider/consumer) so HOCs like `guarded` read context
-   without prop-drilling. Confirm this over a custom context.
-6. **Icons:** ship a curated inline-SVG set vs. depend on an icon font. Proposed:
-   inline SVG (themeable via `currentColor`, no extra request).
-
----
-
-## 12. Roadmap (suggested order)
-
-1. `core` + `html` (`h`) + `theme` (tokens + `stylesheet`) — the foundation.
-2. Layout primitives + the dark stylesheet.
-3. `Registry` (data→component mapping) + a couple of data-display components.
-4. FastAPI integration (`IrisResponse`) + a minimal example app.
-5. HOCs: `list_of`, `with_loading`, `error_boundary`, `paginated`.
-6. App shell + navigation (bottom tabs / side rail) + fixi helpers + `iris-fixi.js`.
-7. Gallery framework + static build + GitHub Pages workflow.
-8. Fill out the component library + forms + overlays.
+1. `core` (`@component`, `render`) + `html` (`h`) + `theme` (tokens + stylesheet).
+2. Layout + surfaces + the dark stylesheet.
+3. Navigation (`AppShell`, bottom tabs / side rail) + fixi + `iris-fixi.js`.
+4. FastAPI integration + a minimal example app.
+5. Gallery framework + static build + GitHub Pages workflow.
+6. Fill out data display, forms, feedback, overlay, icons.
+```
