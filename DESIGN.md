@@ -237,7 +237,105 @@ def home(): return render(article_page("hello"))   # Flask / Django / WSGI
 
 ---
 
-## 8. The showcase / docs site (GitHub Pages)
+## 8. Testing
+
+UI tests are usually flaky because they assert on *appearance*. iris ships only
+the tests with the opposite property — binary, **"did it crash"** checks — and it
+does so as a thin **convenience over Playwright, not an abstraction**. You keep
+the real Playwright `Page`, locators, and `expect`; iris only makes it easy to
+(a) get an iris page into the browser and (b) assert that nothing threw or
+returned a bad status code.
+
+### What iris adds (and what it deliberately doesn't)
+
+iris adds exactly two things:
+
+1. **An error collector** — attach it to any Playwright page; it records uncaught
+   JS exceptions, `console.error`, fixi `fx:error` events, and HTTP responses
+   with disallowed status codes, then fails the test with the real JS stack
+   trace. Because iris installs the fixi hook via `page.add_init_script`, it runs
+   *before* fixi and your code, so nothing is missed.
+2. **Two ways to load a page** — an isolated rendered node, or your real running
+   app.
+
+iris does **not** wrap clicking, filling, navigation, waiting, or assertions —
+that stays plain Playwright. No `page.click()` reinvention, no locator DSL.
+
+### Error collector
+
+```python
+from iris.testing import collect_errors
+
+def test_home(page):                      # real pytest-playwright `page` fixture
+    errors = collect_errors(page)         # hooks pageerror, console.error, fx:error, responses
+    page.goto(url)
+    errors.assert_none()                  # fails with the JS stack trace if anything threw
+```
+
+Under the hood it's just Playwright events — `page.on("pageerror")`,
+`page.on("console")`, `page.on("response")` — plus one init script that forwards
+fixi's `fx:error`. Which status codes count as failures is configurable:
+
+```python
+errors = collect_errors(page, fail_on_status=range(400, 600))   # default
+errors.responses          # every observed response, to inspect if you want
+```
+
+### Mode A — isolated page (smoke-test a render)
+
+Serve a single rendered node (with `iris.css` + `fixi.js` + `iris-fixi.js`) on a
+throwaway URL — good for "this page boots and fixi initializes without error."
+
+```python
+from iris.testing import serve
+
+def test_card_boots(page):
+    errors = collect_errors(page)
+    with serve(article_page("hello")) as url:
+        page.goto(url)
+    errors.assert_none()
+```
+
+### Mode B — your real app (exercise fixi swaps end-to-end)
+
+Run the user's ASGI/WSGI app on a real port so `fx_action` swaps hit real routes,
+then drive it with ordinary Playwright:
+
+```python
+from iris.testing import live_app
+from playwright.sync_api import expect
+from myapp import app
+
+def test_order_flow(page):
+    errors = collect_errors(page)
+    with live_app(app) as base_url:
+        page.goto(base_url)
+        page.get_by_role("button", name="Order").click()    # plain Playwright
+        expect(page.get_by_text("Order placed")).to_be_visible()
+    errors.assert_none()                                     # ...and nothing threw / no 5xx
+```
+
+`serve`, `live_app`, and `collect_errors` are also exposed as pytest fixtures to
+skip the boilerplate.
+
+### No-browser checks come free
+
+Components are pure `data → HTML` functions, so the cheapest tests need no iris
+test API at all — call `render()` and assert on the string with plain Python:
+
+```python
+from iris import render, Button
+def test_button_has_action():
+    assert 'fx-action="/order"' in render(Button(fx_action="/order")["Order"])
+```
+
+iris ships no DSL for this — it's just a function returning a string.
+
+Playwright is an optional extra: `pip install iris[test]`.
+
+---
+
+## 9. The showcase / docs site (GitHub Pages)
 
 A live gallery where every component is shown **rendered** next to the **exact
 Python that produced it** — the fastest way to start.
@@ -286,7 +384,7 @@ jobs:
 
 ---
 
-## 9. Project layout
+## 10. Project layout
 
 ```
 iris/
@@ -298,6 +396,7 @@ iris/
     layout.py  surfaces.py  nav.py  data.py  forms.py  feedback.py  overlay.py  icons.py
   integrations/
     fastapi.py  starlette.py  flask.py  django.py
+  testing.py             # collect_errors, serve, live_app + pytest fixtures (extra: iris[test])
   gallery/
     __init__.py          # gallery registry + @example
     build.py             # static site builder ( -m iris.gallery build )
@@ -311,7 +410,7 @@ DESIGN.md  README.md  pyproject.toml
 
 ---
 
-## 10. Decisions
+## 11. Decisions
 
 - **Min Python:** 3.11+.
 - **Composition model:** components are htpy-style calls; compose by nesting and
@@ -320,13 +419,17 @@ DESIGN.md  README.md  pyproject.toml
   data-driven pages need zero JS.
 - **Docs:** static gallery → GitHub Pages on push to `main`.
 - **Icons:** curated inline-SVG set, themed via `currentColor`.
+- **Testing:** convenience over Playwright (never an abstraction) — `collect_errors`
+  (JS exceptions, `console.error`, fixi `fx:error`, bad status codes) plus
+  `serve` (isolated) and `live_app` (real app) loaders. Optional extra `iris[test]`.
 
-## 11. Roadmap (suggested order)
+## 12. Roadmap (suggested order)
 
 1. `core` (`@component`, `render`) + `html` (`h`) + `theme` (tokens + stylesheet).
 2. Layout + surfaces + the dark stylesheet.
 3. Navigation (`AppShell`, bottom tabs / side rail) + fixi + `iris-fixi.js`.
 4. FastAPI integration + a minimal example app.
-5. Gallery framework + static build + GitHub Pages workflow.
-6. Fill out data display, forms, feedback, overlay, icons.
+5. Testing harness (`iris.testing`): `collect_errors` + `serve`/`live_app` + fixtures.
+6. Gallery framework + static build + GitHub Pages workflow.
+7. Fill out data display, forms, feedback, overlay, icons.
 ```
