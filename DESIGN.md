@@ -212,32 +212,11 @@ iris detects fixi's `FX-Request: true` header so the *same* view function can
 return a full `Page` for a normal request and just the inner fragment for a
 fixi swap.
 
-### Forms round-trip
-
-A `Form` posts via fixi (`fx_action`, `fx_method="post"`) and targets a region to
-swap. The server validates and re-renders: on success, swap in the next view; on
-failure, re-render the *same* `Form` with errors. `Field` has an error slot, so
-the view function is the single source of truth for both the empty and the error
-state — no separate error template.
-
-```python
-def signup_form(values=None, errors=None) -> h.Node:
-    values, errors = values or {}, errors or {}
-    return Form(fx_action="/signup", fx_method="post", fx_target="#signup")[
-        Field(label="Email", error=errors.get("email"))[
-            Input(name="email", value=values.get("email", "")),
-        ],
-        Button(".primary")["Create account"],
-    ]
-
-@app.post("/signup")                       # framework route; returns a fragment
-def signup(request):
-    data = parse(request)
-    if errors := validate(data):
-        return IrisResponse(signup_form(values=data, errors=errors), status=422)
-    create_user(data)
-    return IrisResponse(welcome_view())
-```
+Forms need no special machinery: a `Form` is a styled `<form>` with `fx_*`
+attributes, so submission, swapping, and re-rendering with validation errors are
+just htpy + fixi + your framework's route. iris only contributes the styled
+inputs and an optional `error` slot on `Field` — to show errors you re-render the
+same view with them passed in, like any other component.
 
 ---
 
