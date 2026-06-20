@@ -212,6 +212,33 @@ iris detects fixi's `FX-Request: true` header so the *same* view function can
 return a full `Page` for a normal request and just the inner fragment for a
 fixi swap.
 
+### Forms round-trip
+
+A `Form` posts via fixi (`fx_action`, `fx_method="post"`) and targets a region to
+swap. The server validates and re-renders: on success, swap in the next view; on
+failure, re-render the *same* `Form` with errors. `Field` has an error slot, so
+the view function is the single source of truth for both the empty and the error
+state — no separate error template.
+
+```python
+def signup_form(values=None, errors=None) -> h.Node:
+    values, errors = values or {}, errors or {}
+    return Form(fx_action="/signup", fx_method="post", fx_target="#signup")[
+        Field(label="Email", error=errors.get("email"))[
+            Input(name="email", value=values.get("email", "")),
+        ],
+        Button(".primary")["Create account"],
+    ]
+
+@app.post("/signup")                       # framework route; returns a fragment
+def signup(request):
+    data = parse(request)
+    if errors := validate(data):
+        return IrisResponse(signup_form(values=data, errors=errors), status=422)
+    create_user(data)
+    return IrisResponse(welcome_view())
+```
+
 ---
 
 ## 7. Framework integration
@@ -234,6 +261,30 @@ from iris import render_stream   # -> Iterator[str] / AsyncIterator[str]
 @app.get("/")
 def home(): return render(article_page("hello"))   # Flask / Django / WSGI
 ```
+
+### Routing (iris does none)
+
+iris never owns URLs — your web framework does. A view is just a function
+returning a `Node`, wired to a route with your framework's normal decorator. The
+only iris touch-point is choosing whether to return a full `Page` or a bare
+fragment for a fixi swap, via a one-line header check:
+
+```python
+from iris import is_fx                       # is_fx(headers: Mapping[str, str]) -> bool
+from iris.integrations.fastapi import IrisResponse
+
+@app.get("/home")                            # FastAPI owns the route
+def home(request):
+    content = home_view()                    # same content either way
+    if is_fx(request.headers):               # fixi swap → fragment only
+        return IrisResponse(content)
+    return IrisResponse(shell[content])      # normal request → full Page/shell
+```
+
+`AppShell` tabs and `fx_action` targets just reference these framework URLs as
+strings; iris emits the attributes, your framework resolves the routes. `is_fx`
+takes any header mapping, so it works the same in Flask, Django, or plain
+ASGI/WSGI.
 
 ---
 
@@ -388,8 +439,8 @@ jobs:
 
 ```
 iris/
-  __init__.py            # public API: components, h, component, render, render_stream
-  core.py                # @component wrapper, Node helpers, render/render_stream
+  __init__.py            # public API: components, h, component, render, render_stream, is_fx
+  core.py                # @component wrapper, Node helpers, render/render_stream, is_fx
   html.py                # re-export of htpy + iris extras (h)
   theme.py               # Theme dataclass, tokens, stylesheet() generator
   components/

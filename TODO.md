@@ -111,7 +111,7 @@ Legend: ✅ done · ⬜ not started
 | `fx_*` attribute support on components | ✅ | ⬜ | ⬜ |
 | Vendored `fixi.js` | ✅ | ⬜ | ⬜ |
 | `iris-fixi.js` (history, polling, indicators) | ✅ | ⬜ | ⬜ |
-| `FX-Request` detection (fragment vs full `Page`) | ✅ | ⬜ | ⬜ |
+| `is_fx()` header check (fragment vs full `Page`) | ✅ | ⬜ | ⬜ |
 
 ## Framework integration
 
