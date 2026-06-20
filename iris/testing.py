@@ -17,13 +17,17 @@ Playwright is an optional extra: ``pip install iris-ui[test]``.
 
 from __future__ import annotations
 
+import ast
+import inspect
 import json
+import textwrap
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from .assets import fixi_js, iris_fixi_js, iris_test_js
-from .core import raw, render
+from .core import _example_source, raw, render
 from .html import h
 from .theme import DARK, Theme, stylesheet
 
@@ -38,6 +42,9 @@ __all__ = [
     "Result",
     "run_in_browser",
     "collect_errors",
+    "browser_example",
+    "BrowserExample",
+    "browser_examples",
 ]
 
 
@@ -146,6 +153,80 @@ def run_in_browser(test: BrowserTest | str, *, timeout: int = 5000) -> Result:
         finally:
             browser.close()
     return Result(bool(data["passed"]), list(data["failures"]))
+
+
+# --- Browser-test registry (shared by pytest and the docs gallery) ------- #
+
+def _parse_routes_source(func: Callable[..., Any]) -> dict[str, str]:
+    """Extract ``routes={url: tree}`` from a browser_example as URL -> Python source."""
+
+    tree = ast.parse(textwrap.dedent(inspect.getsource(func)))
+    routes: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
+        if name != "browser_test":
+            continue
+        for kw in node.keywords:
+            if kw.arg == "routes" and isinstance(kw.value, ast.Dict):
+                for key, value in zip(kw.value.keys, kw.value.values):
+                    try:
+                        url = ast.literal_eval(key)
+                    except Exception:
+                        url = ast.unparse(key)
+                    routes[str(url)] = ast.unparse(value)
+    return routes
+
+
+@dataclass
+class BrowserExample:
+    """A registered browser test that doubles as gallery documentation."""
+
+    title: str
+    func: Callable[[], BrowserTest]
+
+    @cached_property
+    def test(self) -> BrowserTest:
+        return self.func()
+
+    @property
+    def source(self) -> str:
+        """The Python that produced the test (the body of the example)."""
+
+        return _example_source(self.func)
+
+    @property
+    def routes(self) -> dict[str, str]:
+        """URL -> the Python component tree that serves it."""
+
+        return _parse_routes_source(self.func)
+
+
+_BROWSER_EXAMPLES: list[BrowserExample] = []
+
+
+def browser_example(title: str | None = None) -> Callable[[Callable[[], BrowserTest]], Callable[[], BrowserTest]]:
+    """Register a browser test for both pytest and the docs gallery.
+
+    The decorated function takes no arguments and returns a :func:`browser_test`::
+
+        @browser_example("Tab navigation")
+        def _():
+            return browser_test(view=..., routes={...}, steps=[...])
+    """
+
+    def decorator(func: Callable[[], BrowserTest]) -> Callable[[], BrowserTest]:
+        _BROWSER_EXAMPLES.append(BrowserExample(title or func.__name__, func))
+        return func
+
+    return decorator
+
+
+def browser_examples() -> list[BrowserExample]:
+    """All registered browser examples, in definition order."""
+
+    return list(_BROWSER_EXAMPLES)
 
 
 class collect_errors:

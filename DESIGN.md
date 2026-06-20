@@ -308,6 +308,12 @@ Assertions run **in-page** (steps are data: `click`, `fill`, `expect_text`,
 `window.__iris_test`. This deterministically exercises real fixi swaps without a
 backend.
 
+**Tests double as docs.** `@browser_example("title")` registers a `browser_test`
+that both pytest runs (`run_in_browser(...).assert_ok()`) *and* the gallery
+renders on a dedicated `tests.html` page — each panel is a live `<iframe srcdoc>`
+running the test (you see the swap + pass/fail banner) next to its routes
+(URL → component tree, parsed from source with `ast`) and the Python source.
+
 ### Mode B — live-app mode (your real app) — *planned*
 
 Run your ASGI/WSGI app on a port and drive it with ordinary Playwright; the

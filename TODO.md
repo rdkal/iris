@@ -142,6 +142,7 @@ Legend: ✅ done · ⬜ not started
 | `@component.example` / `example=` kwarg + source capture (registry) | ✅ | ✅ | ✅ |
 | Gallery chrome (panels, code+copy, theme toggle; phone frame later) | ✅ | ✅ | ✅ |
 | Static build (`python -m iris.gallery build`) | ✅ | ✅ | ✅ |
+| Tests page (`tests.html`): `@browser_example` demos as live iframes + routes + source | ✅ | ✅ | ✅ |
 | GitHub Pages workflow (`.github/workflows/pages.yml`) | ✅ | ✅ | ⬜ |
 
 ## Project / infra
