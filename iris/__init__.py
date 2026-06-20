@@ -61,7 +61,7 @@ from .core import (
 from .html import h
 from .theme import DARK, LIGHT, Theme, stylesheet
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 __all__ = [
     "__version__",
