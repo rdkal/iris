@@ -23,3 +23,13 @@ def Sheet(children: Any, **attrs: Any) -> Any:
 @component
 def Panel(children: Any, **attrs: Any) -> Any:
     return root(h.div, "panel", **attrs)[children]
+
+
+@Card.example("Card")
+def _():
+    return Card[h.h3["Title"], h.p(".muted")["A surface container for content."]]
+
+
+@Card.example("Elevated")
+def _():
+    return Card(".elevated")[h.p["A raised surface."]]

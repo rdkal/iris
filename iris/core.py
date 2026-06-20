@@ -14,8 +14,11 @@ composes natively with htpy.
 
 from __future__ import annotations
 
+import inspect
 import re
+import textwrap
 from collections.abc import Iterable, Iterator, Mapping
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import htpy
@@ -28,6 +31,8 @@ __all__ = [
     "is_fx",
     "classes",
     "root",
+    "Example",
+    "registered_components",
 ]
 
 _SELECTOR = re.compile(r"([#.])([^#.]+)")
@@ -118,6 +123,53 @@ class _Bound:
         return f"<iris component {self._component.name}>"
 
 
+def _example_source(func: Callable[..., Node]) -> str:
+    """Extract the displayable body of an example function as source code.
+
+    Drops the decorator/``def`` lines and a single leading ``return`` so the
+    gallery shows just the component expression the author wrote.
+    """
+
+    lines = textwrap.dedent(inspect.getsource(func)).splitlines()
+    i = 0
+    while i < len(lines) and lines[i].lstrip().startswith("@"):
+        i += 1
+    while i < len(lines) and not lines[i].lstrip().startswith("def "):
+        i += 1
+    body = textwrap.dedent("\n".join(lines[i + 1:])).rstrip()
+    if body.startswith("return "):
+        body = body[len("return "):]
+    return body
+
+
+@dataclass
+class Example:
+    """A usage example attached to a component, for the docs/gallery.
+
+    ``source`` is the captured Python; ``render()`` runs it to live HTML.
+    """
+
+    component: "Component"
+    title: str
+    func: Callable[[], Node]
+
+    @property
+    def source(self) -> str:
+        return _example_source(self.func)
+
+    def render(self) -> str:
+        return render(self.func())
+
+
+_REGISTRY: list["Component"] = []
+
+
+def registered_components() -> list["Component"]:
+    """All components that carry at least one example (in definition order)."""
+
+    return list(_REGISTRY)
+
+
 class Component:
     """Wraps ``func(children, **props)`` with the htpy calling convention."""
 
@@ -126,6 +178,29 @@ class Component:
         self.name = getattr(func, "__name__", "component")
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
+        self.examples: list[Example] = []
+
+    def example(self, title: Any = None) -> Any:
+        """Attach a usage example, captured for the docs/gallery.
+
+        Usable as ``@Comp.example`` or ``@Comp.example("Title")``.  The example
+        function takes no arguments and returns a node using the component.
+        """
+
+        if callable(title):  # bare @Comp.example
+            self._add_example(getattr(title, "__name__", "example"), title)
+            return title
+
+        def decorator(func: Callable[[], Node]) -> Callable[[], Node]:
+            self._add_example(title or getattr(func, "__name__", "example"), func)
+            return func
+
+        return decorator
+
+    def _add_example(self, title: str, func: Callable[[], Node]) -> None:
+        if not self.examples and self not in _REGISTRY:
+            _REGISTRY.append(self)
+        self.examples.append(Example(self, title, func))
 
     def __call__(self, *selectors: Any, **props: Any) -> _Bound:
         return _Bound(self, selectors, props)
@@ -146,10 +221,32 @@ class Component:
         return f"<iris component {self.name}>"
 
 
-def component(func: Callable[..., Node]) -> Component:
-    """Decorator turning a ``func(children, **props)`` into an iris component."""
+def component(
+    func: Callable[..., Node] | None = None,
+    *,
+    example: Callable[[], Node] | None = None,
+    examples: Iterable[Callable[[], Node]] | None = None,
+) -> Component | Callable[[Callable[..., Node]], Component]:
+    """Decorator turning a ``func(children, **props)`` into an iris component.
 
-    return Component(func)
+    Optionally attach usage examples for the docs/gallery, either here::
+
+        @component(example=lambda: Card["Hi"])
+        def Card(children, **attrs): ...
+
+    or, with nicer titles, after definition::
+
+        @Card.example("Elevated")
+        def _(): return Card(".elevated")["Hi"]
+    """
+
+    def make(f: Callable[..., Node]) -> Component:
+        comp = Component(f)
+        for ex in ([example] if example else []) + list(examples or []):
+            comp.example(ex)
+        return comp
+
+    return make if func is None else make(func)
 
 
 def _to_node(node: Node) -> Node:

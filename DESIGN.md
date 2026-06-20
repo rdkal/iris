@@ -370,15 +370,20 @@ Playwright is an optional extra: `pip install iris[test]`.
 A live gallery where every component is shown **rendered** next to the **exact
 Python that produced it** — the fastest way to start.
 
-- A `@gallery.example` decorator registers an example. iris captures the source
-  with `inspect.getsource`, renders the component, and pairs them.
+- Examples live **on the component itself**, so authoring and documenting a
+  component are one step. `@Comp.example` (or the `example=` kwarg on
+  `@component`) captures the source with `inspect.getsource` and the live render;
+  `registered_components()` is the gallery's data layer.
 
   ```python
-  from iris.gallery import gallery
-  from iris import Row, Button
+  from iris import component, Row, Button, root, h
 
-  @gallery.example("Buttons", "Primary & ghost")
-  def buttons():
+  @component
+  def Button(children, *, type="button", **attrs):
+      return root(h.button, "btn", type=type, **attrs)[children]
+
+  @Button.example("Variants")
+  def _():
       return Row(gap=2)[ Button(".primary")["Save"], Button(".ghost")["Cancel"] ]
   ```
 
@@ -428,7 +433,7 @@ iris/
     fastapi.py  starlette.py  flask.py  django.py
   testing.py             # collect_errors, serve, live_app + pytest fixtures (extra: iris[test])
   gallery/
-    __init__.py          # gallery registry + @example
+    __init__.py          # consumes core's registered_components()
     build.py             # static site builder ( -m iris.gallery build )
 assets/
   iris.css   fixi.js   iris-fixi.js

@@ -1,8 +1,9 @@
 # iris — TODO
 
 Status of every piece in [DESIGN.md](./DESIGN.md). Everything is **Designed**.
-Built so far (roadmap steps 1–2): core, theme + dark stylesheet, layout and
-surface components — with tests.
+Built so far: core, theme + dark stylesheet, layout/surface/data/feedback
+components + `Button`, and the component **example mechanism** (`@Comp.example`
+captures source + live render — the gallery data layer) — all with tests.
 
 Legend: ✅ done · ⬜ not started
 
@@ -59,13 +60,13 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `List` | ✅ | ⬜ | ⬜ |
-| `Table` (stacks on mobile) | ✅ | ⬜ | ⬜ |
-| `Badge` | ✅ | ⬜ | ⬜ |
-| `Tag` | ✅ | ⬜ | ⬜ |
-| `Avatar` | ✅ | ⬜ | ⬜ |
-| `Stat` | ✅ | ⬜ | ⬜ |
-| `Empty` | ✅ | ⬜ | ⬜ |
+| `List` | ✅ | ✅ | ✅ |
+| `Table` | ✅ | ✅ | ✅ |
+| `Badge` | ✅ | ✅ | ✅ |
+| `Tag` | ✅ | ✅ | ✅ |
+| `Avatar` | ✅ | ✅ | ✅ |
+| `Stat` | ✅ | ✅ | ✅ |
+| `Empty` | ✅ | ✅ | ✅ |
 
 ## Components — Forms
 
@@ -78,17 +79,17 @@ Legend: ✅ done · ⬜ not started
 | `Select` | ✅ | ⬜ | ⬜ |
 | `Switch` | ✅ | ⬜ | ⬜ |
 | `Checkbox` | ✅ | ⬜ | ⬜ |
-| `Button` | ✅ | ⬜ | ⬜ |
+| `Button` | ✅ | ✅ | ✅ |
 
 ## Components — Feedback
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Skeleton` | ✅ | ⬜ | ⬜ |
-| `Spinner` | ✅ | ⬜ | ⬜ |
+| `Skeleton` | ✅ | ✅ | ✅ |
+| `Spinner` | ✅ | ✅ | ✅ |
 | `Toast` | ✅ | ⬜ | ⬜ |
-| `Banner` | ✅ | ⬜ | ⬜ |
-| `Progress` | ✅ | ⬜ | ⬜ |
+| `Banner` | ✅ | ✅ | ✅ |
+| `Progress` | ✅ | ✅ | ✅ |
 
 ## Components — Overlay
 
@@ -134,7 +135,7 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `@gallery.example` + `inspect.getsource` capture | ✅ | ⬜ | ⬜ |
+| `@component.example` / `example=` kwarg + source capture (registry) | ✅ | ✅ | ✅ |
 | Gallery chrome (phone frame, code panel, theme toggle) | ✅ | ⬜ | ⬜ |
 | Static build (`python -m iris.gallery build`) | ✅ | ⬜ | ⬜ |
 | GitHub Pages workflow (`.github/workflows/pages.yml`) | ✅ | ⬜ | ⬜ |

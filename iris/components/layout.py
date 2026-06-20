@@ -97,3 +97,21 @@ def Divider(children: Any = None, **attrs: Any) -> Any:
 @component
 def Spacer(children: Any = None, **attrs: Any) -> Any:
     return root(h.div, "spacer", **attrs)
+
+
+# --- Examples (captured for the docs/gallery) ---------------------------- #
+
+
+@Stack.example("Vertical stack")
+def _():
+    return Stack(gap=2)[h.div["One"], h.div["Two"], h.div["Three"]]
+
+
+@Row.example("Row with spacer")
+def _():
+    return Row[h.span["Left"], Spacer, h.span(".muted")["Right"]]
+
+
+@Grid.example("Responsive grid")
+def _():
+    return Grid(cols=3, gap=2)[(h.div(".card")[f"Item {i}"] for i in range(1, 7))]

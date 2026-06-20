@@ -17,19 +17,40 @@ See DESIGN.md for the full design. Quick start::
 from __future__ import annotations
 
 from .components import (
+    Avatar,
+    Badge,
+    Banner,
+    Button,
     Card,
     Center,
     Container,
     Divider,
+    Empty,
     Grid,
+    List,
     Page,
     Panel,
+    Progress,
     Row,
     Sheet,
+    Skeleton,
     Spacer,
+    Spinner,
     Stack,
+    Stat,
+    Table,
+    Tag,
 )
-from .core import classes, component, is_fx, render, render_stream, root
+from .core import (
+    Example,
+    classes,
+    component,
+    is_fx,
+    registered_components,
+    render,
+    render_stream,
+    root,
+)
 from .html import h
 from .theme import DARK, LIGHT, Theme, stylesheet
 
@@ -44,6 +65,8 @@ __all__ = [
     "is_fx",
     "classes",
     "root",
+    "Example",
+    "registered_components",
     "h",
     # theme
     "Theme",
@@ -63,4 +86,19 @@ __all__ = [
     "Card",
     "Sheet",
     "Panel",
+    # data display
+    "Badge",
+    "Tag",
+    "Avatar",
+    "Stat",
+    "Empty",
+    "List",
+    "Table",
+    # feedback
+    "Spinner",
+    "Skeleton",
+    "Banner",
+    "Progress",
+    # forms
+    "Button",
 ]
