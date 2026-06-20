@@ -2,6 +2,12 @@
 
 A small, server-side UI toolkit for Python, built on [htpy](https://htpy.dev).
 
+> **iris is not an abstraction.** It's convenience and guidelines on top of
+> [htpy](https://htpy.dev), [fixi](https://github.com/bigskysoftware/fixi), and
+> [FastAPI](https://fastapi.tiangolo.com) — plus a dark, minimal UI component
+> library. Everything it produces is plain htpy/HTML and fixi attributes; drop
+> down to the underlying tools anytime.
+
 You build pages by **composing components** — plain function calls that nest just
 like htpy, but hand you ready-made UI pieces (`Page`, `Card`, `Grid`, `Stack`, …)
 that are dark, minimal, and mobile-first by default.
@@ -127,15 +133,46 @@ a bare fragment for a fixi swap. See `examples/fastapi_app.py` for an app-shell
 app, and the **Frameworks** page of the gallery for more. Needs the `fastapi`
 extra (see [Install](#install)).
 
+## Forms (`iris.ask`)
+
+`iris.ask` builds a form from a Pydantic model — the model is the single source of
+truth for both the form and validation. There's **no error-rendering code**: your
+handler validates with Pydantic, FastAPI returns its default `422`, and
+`iris-ask.js` (bundled by `Page(fixi=True)`) marks the invalid fields.
+
+```python
+from typing import Annotated
+from fastapi import FastAPI, Form
+from pydantic import BaseModel
+from iris import ask, Banner
+from iris.integrations.fastapi import IrisResponse
+
+class Signup(BaseModel):
+    email: str
+    age: int
+
+app = FastAPI()
+
+@app.get("/signup")
+def form() -> IrisResponse:
+    return IrisResponse(ask.form(Signup, action="/signup", target="#result", swap="innerHTML"))
+
+@app.post("/signup")                          # Pydantic validates; 422 -> field errors
+def signup(data: Annotated[Signup, Form()]) -> IrisResponse:
+    return IrisResponse(Banner(".success")[f"Welcome, {data.email}"])
+```
+
+See the **Ask** page of the gallery for the full walkthrough.
+
 ## Status
 
 `v0.1.0`. See [DESIGN.md](./DESIGN.md) for the full design and [TODO.md](./TODO.md)
 for what's built. Implemented so far: the core (`@component`, `render`,
 `render_stream`, `is_fx`, `raw`), the theme tokens + dark stylesheet, the layout,
-surface, data-display, feedback and navigation components + `Button`, the example
-mechanism, the gallery (components + tests + frameworks pages) + Pages workflow,
-fixi interactivity, FastAPI integration (`IrisResponse`), and both browser
-testing modes (stub + live-app).
+surface, data-display, feedback, navigation and form components, the example
+mechanism, the gallery (components + tests + frameworks + ask pages) + Pages
+workflow, fixi interactivity, FastAPI integration (`IrisResponse`), `iris.ask`
+(forms from Pydantic), and both browser testing modes (stub + live-app).
 
 ## Local development
 

@@ -75,13 +75,13 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Form` | ✅ | ⬜ | ⬜ |
-| `Field` | ✅ | ⬜ | ⬜ |
-| `Input` | ✅ | ⬜ | ⬜ |
-| `Textarea` | ✅ | ⬜ | ⬜ |
-| `Select` | ✅ | ⬜ | ⬜ |
-| `Switch` | ✅ | ⬜ | ⬜ |
-| `Checkbox` | ✅ | ⬜ | ⬜ |
+| `Form` | ✅ | ✅ | ✅ |
+| `Field` | ✅ | ✅ | ✅ |
+| `Input` | ✅ | ✅ | ✅ |
+| `Textarea` | ✅ | ✅ | ✅ |
+| `Select` | ✅ | ✅ | ✅ |
+| `Switch` | ✅ | ✅ | ✅ |
+| `Checkbox` | ✅ | ✅ | ✅ |
 | `Button` | ✅ | ✅ | ✅ |
 
 ## Components — Feedback
@@ -118,6 +118,14 @@ Legend: ✅ done · ⬜ not started
 | `iris-fixi.js` (history, polling, indicators) | ✅ | ✅ | ⬜ |
 | `is_fx()` header check (fragment vs full `Page`) | ✅ | ✅ | ✅ |
 
+## Forms convenience (`iris.ask`)
+
+| Item | Designed | Implemented | Tested |
+| --- | :---: | :---: | :---: |
+| `ask.form(Model)` — build a form from a Pydantic model | ✅ | ✅ | ✅ |
+| `iris-ask.js` — map FastAPI 422 JSON onto fields | ✅ | ✅ | ✅ |
+| Ask docs page (`ask.html`) | ✅ | ✅ | ✅ |
+
 ## Framework integration
 
 | Item | Designed | Implemented | Tested |
@@ -146,6 +154,7 @@ Legend: ✅ done · ⬜ not started
 | Static build (`python -m iris.gallery build`) | ✅ | ✅ | ✅ |
 | Tests page (`tests.html`): `@browser_example` demos as live iframes + source | ✅ | ✅ | ✅ |
 | Frameworks page (`frameworks.html`): FastAPI integration examples | ✅ | ✅ | ✅ |
+| Ask page (`ask.html`): forms-from-Pydantic examples | ✅ | ✅ | ✅ |
 | GitHub Pages workflow (`.github/workflows/pages.yml`) | ✅ | ✅ | ⬜ |
 
 ## Project / infra

@@ -155,6 +155,55 @@ a:hover {
   cursor: not-allowed;
 }
 
+/* --- Forms -------------------------------------------------------------- */
+
+.form { display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
+
+.field { display: flex; flex-direction: column; gap: calc(var(--space) * 1); }
+.field-label { font-size: 0.9em; color: var(--muted); }
+.field-error { font-size: 0.85em; color: #f1707a; min-height: 1em; }
+.field:not(.invalid) .field-error:empty { display: none; }
+
+.input {
+  width: 100%;
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 2);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+}
+.input::placeholder { color: color-mix(in oklab, var(--muted), transparent 25%); }
+.input:focus { border-color: var(--accent); }
+textarea.input { min-height: calc(var(--space) * 16); resize: vertical; }
+
+/* invalid state — set by the server or by iris-ask.js from a 422 response */
+.field.invalid .input,
+.input.invalid { border-color: #f1707a; }
+.field.invalid .field-label { color: #f1707a; }
+
+.checkbox, .switch {
+  display: inline-flex; align-items: center; gap: calc(var(--space) * 1.5);
+  cursor: pointer;
+}
+
+.switch input { position: absolute; opacity: 0; }
+.switch-track {
+  position: relative; width: calc(var(--space) * 6); height: calc(var(--space) * 3.5);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+  transition: background 0.15s;
+}
+.switch-thumb {
+  position: absolute; top: 50%; left: calc(var(--space) * 0.5);
+  width: calc(var(--space) * 2.5); height: calc(var(--space) * 2.5);
+  transform: translateY(-50%); background: var(--muted); border-radius: 999px;
+  transition: left 0.15s, background 0.15s;
+}
+.switch input:checked + .switch-track { background: var(--accent); border-color: transparent; }
+.switch input:checked + .switch-track .switch-thumb {
+  left: calc(100% - var(--space) * 3); background: var(--bg);
+}
+
 /* --- Data display ------------------------------------------------------- */
 
 .badge {
