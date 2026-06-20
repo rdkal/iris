@@ -21,11 +21,15 @@ MAIN = "[data-iris-main]"
 
 @dataclass(frozen=True)
 class Tab:
-    """A tab/nav destination: a label, the URL to swap in, and an optional icon."""
+    """A tab/nav destination: a label, the URL to swap in, and an optional icon.
 
-    label: str
+    ``label`` and ``icon`` are content slots, so they accept any node — a string,
+    an htpy element, or an iris component (e.g. ``icon=Icon("home")``).
+    """
+
+    label: Any
     src: str
-    icon: str | None = None
+    icon: Any = None
 
 
 @component

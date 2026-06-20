@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +48,10 @@ GALLERY_CSS = """
 .component-section { padding: calc(var(--space) * 3); border-top: 1px solid var(--border); scroll-margin-top: 4rem; }
 .component-section > h2 { font-size: 1.4rem; }
 .component-doc { color: var(--muted); margin: 0.35rem 0 1rem; max-width: 38rem; }
+.component-doc code {
+  background: color-mix(in oklab, var(--surface), white 6%);
+  padding: 0.1em 0.35em; border-radius: 0.35em; font-size: 0.9em; color: var(--text);
+}
 
 .panel-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 1rem; }
 .panel-head {
@@ -89,6 +94,22 @@ if (toggle) {
 """
 
 
+_RST_CODE = re.compile(r"``(.+?)``")
+
+
+def _doc_nodes(text: str) -> list[Any]:
+    """Render a component docstring: collapse whitespace and turn RST ``code``
+    spans into <code> elements."""
+
+    collapsed = " ".join(text.split())
+    nodes: list[Any] = []
+    for i, part in enumerate(_RST_CODE.split(collapsed)):
+        if not part:
+            continue
+        nodes.append(h.code[part] if i % 2 else part)
+    return nodes
+
+
 def _panel(example: Example) -> Any:
     return h.article(".panel-card")[
         h.div(".panel-head")[f"{example.component.name} · {example.title}"],
@@ -103,7 +124,7 @@ def _panel(example: Example) -> Any:
 def _section(component: Component) -> Any:
     return h.section(".component-section", id=component.name)[
         h.h2[component.name],
-        h.p(".component-doc")[component.__doc__.strip()] if component.__doc__ else None,
+        h.p(".component-doc")[_doc_nodes(component.__doc__)] if component.__doc__ else None,
         [_panel(ex) for ex in component.examples],
     ]
 
