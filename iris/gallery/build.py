@@ -14,12 +14,26 @@ from ..core import Component, Example, raw, registered_components
 from ..html import h
 from ..testing import BrowserExample, browser_examples
 from ..theme import DARK, Theme, stylesheet
+from .frameworks import FRAMEWORK_EXAMPLES, FrameworkExample
 
-__all__ = ["render_gallery", "render_tests", "build"]
+__all__ = ["render_gallery", "render_tests", "render_frameworks", "build"]
+
+_PAGES = [
+    ("index.html", "Components"),
+    ("tests.html", "Tests"),
+    ("frameworks.html", "Frameworks"),
+]
 
 
 def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def _header_actions(current: str) -> Any:
+    return h.div(".header-actions")[
+        (h.a(".theme-btn", href=href)[label] for href, label in _PAGES if href != current),
+        h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
+    ]
 
 
 GALLERY_CSS = """
@@ -66,6 +80,14 @@ GALLERY_CSS = """
   color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface);
 }
 .panel-preview { padding: calc(var(--space) * 3); }
+.panel-note {
+  margin: 0; padding: 0.75rem 1rem; color: var(--muted); font-size: 0.9em;
+  border-bottom: 1px solid var(--border);
+}
+.panel-note code {
+  background: color-mix(in oklab, var(--surface), white 6%);
+  padding: 0.1em 0.35em; border-radius: 0.35em; font-size: 0.9em; color: var(--text);
+}
 
 .panel-code { position: relative; border-top: 1px solid var(--border); }
 .panel-code pre {
@@ -160,10 +182,7 @@ def render_gallery(theme: Theme = DARK, *, title: str = "iris — components") -
                     h.h1["iris"],
                     h.div(".sub")["Live render + the exact source for every component."],
                 ],
-                h.div(".header-actions")[
-                    h.a(".theme-btn", href="tests.html")["Tests →"],
-                    h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
-                ],
+                _header_actions("index.html"),
             ],
             h.nav(".gallery-index")[
                 (h.a(href=f"#{c.name}")[c.name] for c in components)
@@ -209,10 +228,7 @@ def render_tests(theme: Theme = DARK, *, title: str = "iris — tests") -> str:
                     h.h1["iris · tests"],
                     h.div(".sub")["Live fixi interactions — each panel is a real browser test."],
                 ],
-                h.div(".header-actions")[
-                    h.a(".theme-btn", href="index.html")["← Components"],
-                    h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
-                ],
+                _header_actions("tests.html"),
             ],
             h.nav(".gallery-index")[
                 (h.a(href=f"#{_slug(ex.title)}")[ex.title] for ex in examples)
@@ -226,12 +242,63 @@ def render_tests(theme: Theme = DARK, *, title: str = "iris — tests") -> str:
     return str(document)
 
 
+def _framework_panel(example: FrameworkExample) -> Any:
+    return h.article(".panel-card", id=_slug(f"{example.framework}-{example.title}"))[
+        h.div(".panel-head")[example.title],
+        h.p(".panel-note")[_doc_nodes(example.description)],
+        h.div(".panel-code")[
+            h.button(".copy", type="button", data_copy=True)["Copy"],
+            h.pre[h.code[example.code]],
+        ],
+    ]
+
+
+def render_frameworks(theme: Theme = DARK, *, title: str = "iris — frameworks") -> str:
+    frameworks: dict[str, list[FrameworkExample]] = {}
+    for example in FRAMEWORK_EXAMPLES:
+        frameworks.setdefault(example.framework, []).append(example)
+
+    document = h.html(lang="en")[
+        h.head[
+            h.meta(charset="utf-8"),
+            h.meta(name="viewport", content="width=device-width, initial-scale=1"),
+            h.title[title],
+            h.style[raw(stylesheet(theme))],
+            h.style[raw(GALLERY_CSS)],
+        ],
+        h.body(".iris")[
+            h.header(".gallery-header")[
+                h.div[
+                    h.h1["iris · frameworks"],
+                    h.div(".sub")["Use iris with your web framework."],
+                ],
+                _header_actions("frameworks.html"),
+            ],
+            h.nav(".gallery-index")[
+                (h.a(href=f"#{_slug(name)}")[name] for name in frameworks)
+            ],
+            h.main(".gallery-main")[
+                (
+                    h.section(".component-section", id=_slug(name))[
+                        h.h2[name],
+                        [_framework_panel(ex) for ex in examples],
+                    ]
+                    for name, examples in frameworks.items()
+                )
+            ],
+            h.script[raw(SCRIPT)],
+        ],
+    ]
+    return str(document)
+
+
 def build(out: str | Path = "_site", *, theme: Theme = DARK) -> Path:
-    """Render the component gallery (index.html) and tests page (tests.html)."""
+    """Render the gallery: index.html, tests.html, and frameworks.html."""
 
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
     index = out_dir / "index.html"
     index.write_text(render_gallery(theme), encoding="utf-8")
     (out_dir / "tests.html").write_text(render_tests(theme), encoding="utf-8")
+    (out_dir / "frameworks.html").write_text(render_frameworks(theme), encoding="utf-8")
     return index

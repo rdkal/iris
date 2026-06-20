@@ -2,10 +2,11 @@
 
 Status of every piece in [DESIGN.md](./DESIGN.md). Everything is **Designed**.
 Built so far: core, theme + dark stylesheet, layout/surface/data/feedback/nav
-components + `Button`, the component **example mechanism**, the **static gallery**
-+ Pages, **fixi** (`fixi.js` + `iris-fixi.js`, `Page(fixi=True)`), and the
-**stub-mode browser testing** harness (`browser_test` + `iris-test.js` +
-`run_in_browser`, `collect_errors`) — all with tests (incl. real-browser tests).
+components + `Button`, the component **example mechanism**, the **gallery** (+
+tests & frameworks pages) + Pages, **fixi** (`fixi.js` + `iris-fixi.js`,
+`Page(fixi=True)`), **FastAPI integration** (`IrisResponse`), and **both browser
+testing modes** (`browser_test`/`run_in_browser`, `collect_errors`, `live_app`)
+— all with tests (incl. real-browser and live-app tests).
 
 Legend: ✅ done · ⬜ not started
 
@@ -121,7 +122,8 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `IrisResponse` (FastAPI / Starlette, streaming) | ✅ | ⬜ | ⬜ |
+| `IrisResponse` (FastAPI / Starlette, streaming) | ✅ | ✅ | ✅ |
+| FastAPI reference app (`examples/fastapi_app.py`) | ✅ | ✅ | ✅ |
 | Flask / Django / WSGI `render()` adapters | ✅ | ⬜ | ⬜ |
 
 ## Testing (`iris.testing`)
@@ -132,7 +134,7 @@ Legend: ✅ done · ⬜ not started
 | `run_in_browser` (Playwright driver for stub pages) | ✅ | ✅ | ✅ |
 | `collect_errors` (JS exceptions, console.error, fx:error, status) | ✅ | ✅ | ✅ |
 | Gallery doubles as a browser test (no JS errors) | ✅ | ✅ | ✅ |
-| `live_app` — real ASGI/WSGI app (with framework integration) | ✅ | ⬜ | ⬜ |
+| `live_app` — real ASGI app (end-to-end browser test) | ✅ | ✅ | ✅ |
 | pytest fixtures | ✅ | ⬜ | ⬜ |
 
 ## Showcase / docs (GitHub Pages)
@@ -142,7 +144,8 @@ Legend: ✅ done · ⬜ not started
 | `@component.example` / `example=` kwarg + source capture (registry) | ✅ | ✅ | ✅ |
 | Gallery chrome (panels, code+copy, theme toggle; phone frame later) | ✅ | ✅ | ✅ |
 | Static build (`python -m iris.gallery build`) | ✅ | ✅ | ✅ |
-| Tests page (`tests.html`): `@browser_example` demos as live iframes + routes + source | ✅ | ✅ | ✅ |
+| Tests page (`tests.html`): `@browser_example` demos as live iframes + source | ✅ | ✅ | ✅ |
+| Frameworks page (`frameworks.html`): FastAPI integration examples | ✅ | ✅ | ✅ |
 | GitHub Pages workflow (`.github/workflows/pages.yml`) | ✅ | ✅ | ⬜ |
 
 ## Project / infra

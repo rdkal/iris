@@ -311,24 +311,24 @@ backend.
 **Tests double as docs.** `@browser_example("title")` registers a `browser_test`
 that both pytest runs (`run_in_browser(...).assert_ok()`) *and* the gallery
 renders on a dedicated `tests.html` page — each panel is a live `<iframe srcdoc>`
-running the test (you see the swap + pass/fail banner) next to its routes
-(URL → component tree, parsed from source with `ast`) and the Python source.
+running the test (you see the swap + pass/fail banner) next to its Python source.
 
-### Mode B — live-app mode (your real app) — *planned*
+### Mode B — live-app mode (your real app) ✅ implemented
 
-Run your ASGI/WSGI app on a port and drive it with ordinary Playwright; the
-**error collector** attaches to a real page and records uncaught JS exceptions,
+`live_app(app)` runs your ASGI app (e.g. FastAPI) on a free port; drive it with
+ordinary Playwright while the **error collector** records uncaught JS exceptions,
 `console.error`, fixi `fx:error`, and bad status codes:
 
 ```python
-from iris.testing import collect_errors          # implemented
-# from iris.testing import live_app              # lands with framework integration
+from iris.testing import collect_errors, live_app
 
-def test_order_flow(page):                        # real Playwright page
-    errors = collect_errors(page)                 # pageerror/console/response + fx:error init script
-    page.goto(base_url)
-    page.get_by_role("button", name="Order").click()   # plain Playwright
-    errors.assert_none()                          # nothing threw / no 5xx
+def test_order_flow():
+    with live_app(app) as base_url, sync_playwright() as pw:
+        page = pw.chromium.launch().new_page()
+        errors = collect_errors(page)
+        page.goto(base_url)
+        page.get_by_role("button", name="Order").click()   # plain Playwright
+        errors.assert_none()                          # nothing threw / no 5xx
 ```
 
 `collect_errors(page, fail_on_status=range(400, 600))` is configurable. The same

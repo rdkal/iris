@@ -17,11 +17,15 @@ Playwright is an optional extra: ``pip install iris-ui[test]``.
 
 from __future__ import annotations
 
+import contextlib
 import json
+import socket
+import threading
+import time
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any, Callable, Iterable, Iterator, Mapping
 
 from .assets import fixi_js, iris_fixi_js, iris_test_js
 from .core import _example_source, raw, render
@@ -39,6 +43,7 @@ __all__ = [
     "Result",
     "run_in_browser",
     "collect_errors",
+    "live_app",
     "browser_example",
     "BrowserExample",
     "browser_examples",
@@ -225,3 +230,40 @@ class collect_errors:
 
     def assert_none(self) -> None:
         assert not self.entries, "page errors:\n  - " + "\n  - ".join(self.entries)
+
+
+def _free_port() -> int:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+@contextlib.contextmanager
+def live_app(app: Any, *, host: str = "127.0.0.1") -> Iterator[str]:
+    """Run an ASGI app (e.g. FastAPI) on a free port for the duration of the block.
+
+    Yields the base URL so a browser can hit real routes (the live-app testing
+    mode — exercises fixi swaps against your actual server)::
+
+        with live_app(app) as base_url:
+            page.goto(base_url)
+    """
+
+    import uvicorn
+
+    port = _free_port()
+    server = uvicorn.Server(
+        uvicorn.Config(app, host=host, port=port, log_level="warning")
+    )
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    try:
+        deadline = time.time() + 10
+        while not server.started and time.time() < deadline:
+            time.sleep(0.02)
+        if not server.started:
+            raise RuntimeError("live_app: server failed to start")
+        yield f"http://{host}:{port}"
+    finally:
+        server.should_exit = True
+        thread.join(timeout=5)
