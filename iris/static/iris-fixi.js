@@ -27,7 +27,8 @@
   });
   document.addEventListener("fx:swapped", (e) => {
     const url = e.detail.cfg.__irisPush;
-    if (url) history.pushState({ irisUrl: url }, "", url);
+    // pushState can throw (e.g. a sandboxed iframe) — never let it break a swap.
+    if (url) { try { history.pushState({ irisUrl: url }, "", url); } catch (e) {} }
   });
   window.addEventListener("popstate", () => {
     // Re-request the current URL into the app shell's main region, if present.

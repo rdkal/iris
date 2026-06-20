@@ -6,13 +6,20 @@ import re
 from pathlib import Path
 from typing import Any
 
-# Importing the package registers every component's examples.
+# Importing the package registers every component's examples; importing demos
+# registers the browser-test examples shown on the tests page.
 import iris  # noqa: F401
+from . import demos  # noqa: F401
 from ..core import Component, Example, raw, registered_components
 from ..html import h
+from ..testing import BrowserExample, browser_examples
 from ..theme import DARK, Theme, stylesheet
 
-__all__ = ["render_gallery", "build"]
+__all__ = ["render_gallery", "render_tests", "build"]
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 GALLERY_CSS = """
@@ -62,7 +69,8 @@ GALLERY_CSS = """
 
 .panel-code { position: relative; border-top: 1px solid var(--border); }
 .panel-code pre {
-  margin: 0; padding: 1rem; overflow: auto; font-size: 0.85em; line-height: 1.5;
+  margin: 0; padding: 1rem; font-size: 0.85em; line-height: 1.5;
+  white-space: pre-wrap; overflow-wrap: anywhere;  /* wrap long lines on mobile */
   background: color-mix(in oklab, var(--bg), black 35%);
 }
 .panel-code .copy {
@@ -72,6 +80,13 @@ GALLERY_CSS = """
   background: var(--surface); color: var(--muted); cursor: pointer;
 }
 .panel-code .copy:hover { color: var(--text); }
+
+.header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+.test-frame {
+  width: 100%; height: 340px; display: block;
+  border: 0; border-top: 1px solid var(--border); background: var(--bg);
+}
 """
 
 SCRIPT = """
@@ -145,7 +160,10 @@ def render_gallery(theme: Theme = DARK, *, title: str = "iris — components") -
                     h.h1["iris"],
                     h.div(".sub")["Live render + the exact source for every component."],
                 ],
-                h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
+                h.div(".header-actions")[
+                    h.a(".theme-btn", href="tests.html")["Tests →"],
+                    h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
+                ],
             ],
             h.nav(".gallery-index")[
                 (h.a(href=f"#{c.name}")[c.name] for c in components)
@@ -159,11 +177,61 @@ def render_gallery(theme: Theme = DARK, *, title: str = "iris — components") -
     return str(document)
 
 
+def _test_panel(example: BrowserExample) -> Any:
+    return h.article(".panel-card", id=_slug(example.title))[
+        h.div(".panel-head")[example.title],
+        h.iframe(
+            ".test-frame",
+            srcdoc=example.test.html,
+            sandbox="allow-scripts allow-same-origin allow-forms",
+            loading="lazy",
+        ),
+        h.div(".panel-code")[
+            h.button(".copy", type="button", data_copy=True)["Copy"],
+            h.pre[h.code[example.source]],
+        ],
+    ]
+
+
+def render_tests(theme: Theme = DARK, *, title: str = "iris — tests") -> str:
+    examples = browser_examples()
+    document = h.html(lang="en")[
+        h.head[
+            h.meta(charset="utf-8"),
+            h.meta(name="viewport", content="width=device-width, initial-scale=1"),
+            h.title[title],
+            h.style[raw(stylesheet(theme))],
+            h.style[raw(GALLERY_CSS)],
+        ],
+        h.body(".iris")[
+            h.header(".gallery-header")[
+                h.div[
+                    h.h1["iris · tests"],
+                    h.div(".sub")["Live fixi interactions — each panel is a real browser test."],
+                ],
+                h.div(".header-actions")[
+                    h.a(".theme-btn", href="index.html")["← Components"],
+                    h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
+                ],
+            ],
+            h.nav(".gallery-index")[
+                (h.a(href=f"#{_slug(ex.title)}")[ex.title] for ex in examples)
+            ],
+            h.main(".gallery-main")[
+                (_test_panel(ex) for ex in examples)
+            ],
+            h.script[raw(SCRIPT)],
+        ],
+    ]
+    return str(document)
+
+
 def build(out: str | Path = "_site", *, theme: Theme = DARK) -> Path:
-    """Render the gallery to ``<out>/index.html`` and return that path."""
+    """Render the component gallery (index.html) and tests page (tests.html)."""
 
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
     index = out_dir / "index.html"
     index.write_text(render_gallery(theme), encoding="utf-8")
+    (out_dir / "tests.html").write_text(render_tests(theme), encoding="utf-8")
     return index
