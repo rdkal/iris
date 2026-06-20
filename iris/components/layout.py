@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..assets import fixi_js, iris_fixi_js
 from ..core import component, raw, root
 from ..html import h
 from ..theme import DARK, Theme, stylesheet
@@ -45,11 +46,13 @@ def _box(tag: Any, base: str, children: Any, attrs: dict[str, Any], **css_vars: 
 
 @component
 def Page(children: Any, *, title: str | None = None, theme: Theme = DARK,
-         lang: str = "en", **attrs: Any) -> Any:
+         lang: str = "en", fixi: bool = False, **attrs: Any) -> Any:
     """A full, self-contained HTML document with the iris stylesheet inlined.
 
     Mobile-first: ships the ``viewport`` meta so phones render at device width.
-    ``**attrs`` are applied to ``<body>``.
+    ``**attrs`` are applied to ``<body>``.  Pass ``fixi=True`` to inline
+    ``fixi.js`` + ``iris-fixi.js`` for interactive pages (data-driven pages need
+    no JS, so it's off by default).
     """
 
     return h.html(lang=lang)[
@@ -59,7 +62,10 @@ def Page(children: Any, *, title: str | None = None, theme: Theme = DARK,
             h.title[title] if title else None,
             h.style[raw(stylesheet(theme))],
         ],
-        root(h.body, "iris", **attrs)[children],
+        root(h.body, "iris", **attrs)[
+            children,
+            (h.script[fixi_js()], h.script[iris_fixi_js()]) if fixi else None,
+        ],
     ]
 
 

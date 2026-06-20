@@ -1,10 +1,11 @@
 # iris — TODO
 
 Status of every piece in [DESIGN.md](./DESIGN.md). Everything is **Designed**.
-Built so far: core, theme + dark stylesheet, layout/surface/data/feedback
-components + `Button`, the component **example mechanism** (`@Comp.example`
-captures source + live render), and the **static gallery** (`python -m
-iris.gallery build`) + GitHub Pages workflow — all with tests.
+Built so far: core, theme + dark stylesheet, layout/surface/data/feedback/nav
+components + `Button`, the component **example mechanism**, the **static gallery**
++ Pages, **fixi** (`fixi.js` + `iris-fixi.js`, `Page(fixi=True)`), and the
+**stub-mode browser testing** harness (`browser_test` + `iris-test.js` +
+`run_in_browser`, `collect_errors`) — all with tests (incl. real-browser tests).
 
 Legend: ✅ done · ⬜ not started
 
@@ -51,11 +52,11 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `AppShell` (bottom tabs → side rail) | ✅ | ⬜ | ⬜ |
-| `Header` | ✅ | ⬜ | ⬜ |
-| `Tabs` / `Tab` | ✅ | ⬜ | ⬜ |
-| `NavLink` | ✅ | ⬜ | ⬜ |
-| `Breadcrumbs` | ✅ | ⬜ | ⬜ |
+| `AppShell` (bottom tabs → side rail) | ✅ | ✅ | ✅ |
+| `Header` | ✅ | ✅ | ✅ |
+| `Tabs` / `Tab` | ✅ | ✅ | ✅ |
+| `NavLink` | ✅ | ✅ | ✅ |
+| `Breadcrumbs` | ✅ | ✅ | ✅ |
 
 ## Components — Data display
 
@@ -111,9 +112,9 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `fx_*` attribute support on components | ✅ | ⬜ | ⬜ |
-| Vendored `fixi.js` | ✅ | ⬜ | ⬜ |
-| `iris-fixi.js` (history, polling, indicators) | ✅ | ⬜ | ⬜ |
+| `fx_*` attribute support on components | ✅ | ✅ | ✅ |
+| Vendored `fixi.js` + `Page(fixi=True)` inlining | ✅ | ✅ | ✅ |
+| `iris-fixi.js` (history, polling, indicators) | ✅ | ✅ | ⬜ |
 | `is_fx()` header check (fragment vs full `Page`) | ✅ | ✅ | ✅ |
 
 ## Framework integration
@@ -127,9 +128,11 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `collect_errors` (JS exceptions, console.error, fx:error, status) | ✅ | ⬜ | ⬜ |
-| `serve` — isolated rendered node | ✅ | ⬜ | ⬜ |
-| `live_app` — real ASGI/WSGI app | ✅ | ⬜ | ⬜ |
+| Stub mode: `browser_test` + steps + `iris-test.js` (fx:config interceptor) | ✅ | ✅ | ✅ |
+| `run_in_browser` (Playwright driver for stub pages) | ✅ | ✅ | ✅ |
+| `collect_errors` (JS exceptions, console.error, fx:error, status) | ✅ | ✅ | ✅ |
+| Gallery doubles as a browser test (no JS errors) | ✅ | ✅ | ✅ |
+| `live_app` — real ASGI/WSGI app (with framework integration) | ✅ | ⬜ | ⬜ |
 | pytest fixtures | ✅ | ⬜ | ⬜ |
 
 ## Showcase / docs (GitHub Pages)

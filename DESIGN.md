@@ -205,8 +205,8 @@ attributes via `fx_*` kwargs (`fx_action`, `fx_method`, `fx_target`, `fx_swap`,
 `fx_trigger`). fixi is ~1.5KB and deliberately omits history, polling, and
 loading indicators — so iris ships a tiny first-party `iris-fixi.js` that adds
 exactly those through fixi's event API (`fx:config`, `fx:before`, `fx:swapped`).
-`Page`/`AppShell` can include both scripts automatically (opt-out for pure
-data-driven pages).
+`Page(fixi=True)` inlines both `fixi.js` and `iris-fixi.js`; it's opt-in, so pure
+data-driven pages stay JS-free by default.
 
 iris detects fixi's `FX-Request: true` header so the *same* view function can
 return a full `Page` for a normal request and just the inner fragment for a
@@ -276,77 +276,58 @@ the real Playwright `Page`, locators, and `expect`; iris only makes it easy to
 (a) get an iris page into the browser and (b) assert that nothing threw or
 returned a bad status code.
 
-### What iris adds (and what it deliberately doesn't)
+There are two modes, and both keep Playwright visible — no locator DSL.
 
-iris adds exactly two things:
+### Mode A — stub mode (pure browser, no server) ✅ implemented
 
-1. **An error collector** — attach it to any Playwright page; it records uncaught
-   JS exceptions, `console.error`, fixi `fx:error` events, and HTTP responses
-   with disallowed status codes, then fails the test with the real JS stack
-   trace. Because iris installs the fixi hook via `page.add_init_script`, it runs
-   *before* fixi and your code, so nothing is missed.
-2. **Two ways to load a page** — an isolated rendered node, or your real running
-   app.
-
-iris does **not** wrap clicking, filling, navigation, waiting, or assertions —
-that stays plain Playwright. No `page.click()` reinvention, no locator DSL.
-
-### Error collector
+Define the initial **view** and the **routes** (URL → component tree) as data,
+plus the **steps** to run. iris pre-renders each route to a fragment, embeds
+everything in a self-contained page, and `iris-test.js` does the rest *in the
+browser*: it hooks fixi's `fx:config` to serve the matching fragment from a
+canned `Response` (so fixi's real swap flow runs with no network), runs the
+steps, collects errors (`window.onerror`, `console.error`, `fx:error`), and
+reports `window.__iris_test = {passed, failures}` plus a pass/fail banner.
 
 ```python
-from iris.testing import collect_errors
+from iris import Button, h
+from iris.testing import browser_test, click, expect_text, run_in_browser
 
-def test_home(page):                      # real pytest-playwright `page` fixture
-    errors = collect_errors(page)         # hooks pageerror, console.error, fx:error, responses
-    page.goto(url)
-    errors.assert_none()                  # fails with the JS stack trace if anything threw
+test = browser_test(
+    view=h.div[ h.div("#out")["initial"],
+                Button(fx_action="/next", fx_target="#out")["Load"] ],
+    routes={"/next": h.p["swapped content"]},     # response = a component tree
+    steps=[ click("button"), expect_text("swapped content") ],
+)
+
+test.write("order.html")        # open in ANY browser → runs itself, shows result
+run_in_browser(test).assert_ok()  # or drive headless Chromium and read the result
 ```
 
-Under the hood it's just Playwright events — `page.on("pageerror")`,
-`page.on("console")`, `page.on("response")` — plus one init script that forwards
-fixi's `fx:error`. Which status codes count as failures is configurable:
+Assertions run **in-page** (steps are data: `click`, `fill`, `expect_text`,
+`expect_absent`, `wait`); `run_in_browser` just loads the page and reads
+`window.__iris_test`. This deterministically exercises real fixi swaps without a
+backend.
+
+### Mode B — live-app mode (your real app) — *planned*
+
+Run your ASGI/WSGI app on a port and drive it with ordinary Playwright; the
+**error collector** attaches to a real page and records uncaught JS exceptions,
+`console.error`, fixi `fx:error`, and bad status codes:
 
 ```python
-errors = collect_errors(page, fail_on_status=range(400, 600))   # default
-errors.responses          # every observed response, to inspect if you want
+from iris.testing import collect_errors          # implemented
+# from iris.testing import live_app              # lands with framework integration
+
+def test_order_flow(page):                        # real Playwright page
+    errors = collect_errors(page)                 # pageerror/console/response + fx:error init script
+    page.goto(base_url)
+    page.get_by_role("button", name="Order").click()   # plain Playwright
+    errors.assert_none()                          # nothing threw / no 5xx
 ```
 
-### Mode A — isolated page (smoke-test a render)
-
-Serve a single rendered node (with `iris.css` + `fixi.js` + `iris-fixi.js`) on a
-throwaway URL — good for "this page boots and fixi initializes without error."
-
-```python
-from iris.testing import serve
-
-def test_card_boots(page):
-    errors = collect_errors(page)
-    with serve(article_page("hello")) as url:
-        page.goto(url)
-    errors.assert_none()
-```
-
-### Mode B — your real app (exercise fixi swaps end-to-end)
-
-Run the user's ASGI/WSGI app on a real port so `fx_action` swaps hit real routes,
-then drive it with ordinary Playwright:
-
-```python
-from iris.testing import live_app
-from playwright.sync_api import expect
-from myapp import app
-
-def test_order_flow(page):
-    errors = collect_errors(page)
-    with live_app(app) as base_url:
-        page.goto(base_url)
-        page.get_by_role("button", name="Order").click()    # plain Playwright
-        expect(page.get_by_text("Order placed")).to_be_visible()
-    errors.assert_none()                                     # ...and nothing threw / no 5xx
-```
-
-`serve`, `live_app`, and `collect_errors` are also exposed as pytest fixtures to
-skip the boilerplate.
+`collect_errors(page, fail_on_status=range(400, 600))` is configurable. The same
+collector is how the **gallery doubles as a test**: load the built gallery, click
+the theme toggle, `errors.assert_none()`.
 
 ### No-browser checks come free
 

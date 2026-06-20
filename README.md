@@ -55,13 +55,40 @@ open _site/index.html
 It deploys to GitHub Pages automatically via `.github/workflows/pages.yml` on
 push to `main` (enable Pages → "GitHub Actions" in repo settings).
 
+## Interactivity & testing
+
+Interactive pages use [fixi](https://github.com/bigskysoftware/fixi) (vendored)
+plus a small `iris-fixi.js` (history, polling, loading indicators). Render the
+host page with `Page(fixi=True)` to inline both. Components emit `fx_*`
+attributes (`fx_action`, `fx_target`, `fx_swap`, …); `AppShell`/`Tabs`/`NavLink`
+swap a main region without full reloads.
+
+For testing, `iris.testing` has a **stub mode** that runs purely in the browser:
+define the view + routes (URL → component tree) + steps as data, and iris builds
+a self-contained page that intercepts fixi requests, runs the steps, and reports
+pass/fail in-page.
+
+```python
+from iris import Button, h
+from iris.testing import browser_test, click, expect_text, run_in_browser
+
+test = browser_test(
+    view=h.div[h.div("#out")["initial"], Button(fx_action="/next", fx_target="#out")["Load"]],
+    routes={"/next": h.p["swapped content"]},
+    steps=[click("button"), expect_text("swapped content")],
+)
+test.write("test.html")            # open in any browser — it runs itself
+run_in_browser(test).assert_ok()   # or drive headless Chromium
+```
+
 ## Status
 
 Early. See [DESIGN.md](./DESIGN.md) for the full design and [TODO.md](./TODO.md)
 for what's built. Implemented so far: the core (`@component`, `render`,
 `render_stream`, `is_fx`, `raw`), the theme tokens + dark stylesheet, the layout,
-surface, data-display and feedback components + `Button`, the component example
-mechanism, and the static gallery + Pages workflow.
+surface, data-display, feedback and navigation components + `Button`, the example
+mechanism, the static gallery + Pages workflow, fixi interactivity, and the
+stub-mode browser testing harness.
 
 ## Install
 
