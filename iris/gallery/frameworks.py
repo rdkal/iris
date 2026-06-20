@@ -23,8 +23,10 @@ FRAMEWORK_EXAMPLES: list[FrameworkExample] = [
     FrameworkExample(
         "FastAPI",
         "Install",
-        "iris owns the view; FastAPI owns routing. Add the optional extra.",
-        'pip install "iris-ui[fastapi]"',
+        "iris owns the view; FastAPI owns routing. Install from GitHub with the "
+        "``fastapi`` extra (fastapi + uvicorn).",
+        'pip install "iris-ui[fastapi] @ '
+        'git+https://github.com/rdkal/iris.git@v0.1.0"',
     ),
     FrameworkExample(
         "FastAPI",

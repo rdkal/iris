@@ -41,6 +41,33 @@ def ArticleCard(children, *, title, body, tags):
     ]
 ```
 
+## Install
+
+iris isn't on PyPI — install it straight from GitHub, pinned to a tag:
+
+```bash
+pip install "git+https://github.com/rdkal/iris.git@v0.1.0"
+```
+
+Optional extras pull in heavier dependencies only when you need them — use the
+`iris-ui[...]` form (the distribution name is `iris-ui`; you still `import iris`):
+
+```bash
+# FastAPI integration (fastapi + uvicorn)
+pip install "iris-ui[fastapi] @ git+https://github.com/rdkal/iris.git@v0.1.0"
+
+# everything for the test suite (pytest, playwright, fastapi, uvicorn, httpx)
+pip install "iris-ui[test] @ git+https://github.com/rdkal/iris.git@v0.1.0"
+```
+
+As a dependency of another project (`pyproject.toml` or `requirements.txt`):
+
+```
+iris-ui @ git+https://github.com/rdkal/iris.git@v0.1.0
+```
+
+Use `@main` for the latest unreleased code, or `@<commit-sha>` to pin exactly.
+
 ## Component gallery
 
 Every component carries its own usage examples (`@Comp.example`), which double as
@@ -97,23 +124,26 @@ def home() -> IrisResponse:                    # streams text/html
 
 `is_fx(request.headers)` lets one view return a full `Page` on a direct visit or
 a bare fragment for a fixi swap. See `examples/fastapi_app.py` for an app-shell
-app, and the **Frameworks** page of the gallery for more. Install with
-`pip install "iris-ui[fastapi]"`.
+app, and the **Frameworks** page of the gallery for more. Needs the `fastapi`
+extra (see [Install](#install)).
 
 ## Status
 
-Early. See [DESIGN.md](./DESIGN.md) for the full design and [TODO.md](./TODO.md)
+`v0.1.0`. See [DESIGN.md](./DESIGN.md) for the full design and [TODO.md](./TODO.md)
 for what's built. Implemented so far: the core (`@component`, `render`,
 `render_stream`, `is_fx`, `raw`), the theme tokens + dark stylesheet, the layout,
 surface, data-display, feedback and navigation components + `Button`, the example
-mechanism, the static gallery + Pages workflow, fixi interactivity, and the
-stub-mode browser testing harness.
+mechanism, the gallery (components + tests + frameworks pages) + Pages workflow,
+fixi interactivity, FastAPI integration (`IrisResponse`), and both browser
+testing modes (stub + live-app).
 
-## Install
+## Local development
 
 ```bash
-pip install -e .          # core
-pip install -e ".[test]"  # + pytest & playwright (browser testing, WIP)
+git clone https://github.com/rdkal/iris.git && cd iris
+pip install -e ".[test]"        # editable install with the test extra
+python -m playwright install chromium   # one-time, for browser/live-app tests
+python -m pytest
 ```
 
 ## License
