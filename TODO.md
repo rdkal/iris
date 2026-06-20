@@ -1,7 +1,8 @@
 # iris — TODO
 
-Status of every piece in [DESIGN.md](./DESIGN.md). The design phase is complete,
-so everything is **Designed**; nothing is built yet.
+Status of every piece in [DESIGN.md](./DESIGN.md). Everything is **Designed**.
+Built so far (roadmap steps 1–2): core, theme + dark stylesheet, layout and
+surface components — with tests.
 
 Legend: ✅ done · ⬜ not started
 
@@ -9,40 +10,40 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `@component` wrapper (htpy-style `(...)` / `[...]` calling) | ✅ | ⬜ | ⬜ |
-| `render()` → str | ✅ | ⬜ | ⬜ |
-| `render_stream()` → sync/async chunk iterator | ✅ | ⬜ | ⬜ |
-| `h` — htpy re-export + iris extras | ✅ | ⬜ | ⬜ |
+| `@component` wrapper (htpy-style `(...)` / `[...]` calling) | ✅ | ✅ | ✅ |
+| `render()` → str | ✅ | ✅ | ✅ |
+| `render_stream()` → chunk iterator (sync; async pending) | ✅ | ✅ | ✅ |
+| `h` — htpy re-export + iris extras | ✅ | ✅ | ✅ |
 
 ## Theme
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Theme` dataclass + token set (~12 vars) | ✅ | ⬜ | ⬜ |
-| `stylesheet()` generator | ✅ | ⬜ | ⬜ |
-| Dark default `iris.css` (hand-written component classes) | ✅ | ⬜ | ⬜ |
-| Light mode override (`data-theme` / `prefers-color-scheme`) | ✅ | ⬜ | ⬜ |
+| `Theme` dataclass + token set (~12 vars) | ✅ | ✅ | ✅ |
+| `stylesheet()` generator | ✅ | ✅ | ✅ |
+| Dark default `iris.css` (hand-written component classes) | ✅ | ✅ | ✅ |
+| Light mode override (`data-theme`) | ✅ | ✅ | ✅ |
 
 ## Components — Layout
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Page` | ✅ | ⬜ | ⬜ |
-| `Container` | ✅ | ⬜ | ⬜ |
-| `Stack` | ✅ | ⬜ | ⬜ |
-| `Row` | ✅ | ⬜ | ⬜ |
-| `Grid` | ✅ | ⬜ | ⬜ |
-| `Center` | ✅ | ⬜ | ⬜ |
-| `Divider` | ✅ | ⬜ | ⬜ |
-| `Spacer` | ✅ | ⬜ | ⬜ |
+| `Page` | ✅ | ✅ | ✅ |
+| `Container` | ✅ | ✅ | ✅ |
+| `Stack` | ✅ | ✅ | ✅ |
+| `Row` | ✅ | ✅ | ✅ |
+| `Grid` | ✅ | ✅ | ✅ |
+| `Center` | ✅ | ✅ | ✅ |
+| `Divider` | ✅ | ✅ | ✅ |
+| `Spacer` | ✅ | ✅ | ✅ |
 
 ## Components — Surfaces
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Card` | ✅ | ⬜ | ⬜ |
-| `Sheet` | ✅ | ⬜ | ⬜ |
-| `Panel` | ✅ | ⬜ | ⬜ |
+| `Card` | ✅ | ✅ | ✅ |
+| `Sheet` | ✅ | ✅ | ✅ |
+| `Panel` | ✅ | ✅ | ✅ |
 
 ## Components — Navigation
 
@@ -111,7 +112,7 @@ Legend: ✅ done · ⬜ not started
 | `fx_*` attribute support on components | ✅ | ⬜ | ⬜ |
 | Vendored `fixi.js` | ✅ | ⬜ | ⬜ |
 | `iris-fixi.js` (history, polling, indicators) | ✅ | ⬜ | ⬜ |
-| `is_fx()` header check (fragment vs full `Page`) | ✅ | ⬜ | ⬜ |
+| `is_fx()` header check (fragment vs full `Page`) | ✅ | ✅ | ✅ |
 
 ## Framework integration
 
@@ -142,6 +143,6 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `pyproject.toml` + packaging (extras: `test`) | ✅ | ⬜ | ⬜ |
-| `README.md` | ✅ | ⬜ | ⬜ |
+| `pyproject.toml` + packaging (extras: `test`) | ✅ | ✅ | ✅ |
+| `README.md` | ✅ | ✅ | ⬜ |
 | `examples/fastapi_app` reference app | ✅ | ⬜ | ⬜ |

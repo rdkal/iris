@@ -1,0 +1,117 @@
+/* iris base styles. Everything is derived from the ~12 theme tokens declared
+   on :root (see iris/theme.py). Mobile-first: base rules need no media query. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+:where(button, input, textarea, select) {
+  font: inherit;
+  color: inherit;
+}
+
+/* --- Layout ------------------------------------------------------------- */
+
+.container {
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: calc(var(--space) * 2);
+}
+
+/* Stack: vertical flow with a consistent gap (multiples of --space). */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+.stack > * + * {
+  margin-top: calc(var(--space) * var(--gap, 2));
+}
+
+/* Row: horizontal flex, wraps on small screens. */
+.row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--space) * var(--gap, 2));
+}
+
+/* Grid: responsive columns, collapses to one column on narrow viewports. */
+.grid {
+  display: grid;
+  gap: calc(var(--space) * var(--gap, 2));
+  grid-template-columns: 1fr;
+}
+@media (min-width: 40rem) {
+  .grid {
+    grid-template-columns: repeat(var(--cols, 2), 1fr);
+  }
+}
+
+.center {
+  display: grid;
+  place-items: center;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* --- Surfaces ----------------------------------------------------------- */
+
+.card,
+.sheet,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 3);
+}
+
+.elevated {
+  background: color-mix(in oklab, var(--surface), white 4%);
+}
+
+.panel {
+  border-radius: 0;
+  border-inline: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
