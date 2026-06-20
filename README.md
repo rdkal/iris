@@ -81,6 +81,25 @@ test.write("test.html")            # open in any browser — it runs itself
 run_in_browser(test).assert_ok()   # or drive headless Chromium
 ```
 
+## FastAPI
+
+```python
+from fastapi import FastAPI
+from iris import Page, Container, h
+from iris.integrations.fastapi import IrisResponse
+
+app = FastAPI()
+
+@app.get("/")
+def home() -> IrisResponse:                    # streams text/html
+    return IrisResponse(Page(title="Home")[Container[h.h1["Hello"]]])
+```
+
+`is_fx(request.headers)` lets one view return a full `Page` on a direct visit or
+a bare fragment for a fixi swap. See `examples/fastapi_app.py` for an app-shell
+app, and the **Frameworks** page of the gallery for more. Install with
+`pip install "iris-ui[fastapi]"`.
+
 ## Status
 
 Early. See [DESIGN.md](./DESIGN.md) for the full design and [TODO.md](./TODO.md)

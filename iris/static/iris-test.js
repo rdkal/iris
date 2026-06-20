@@ -71,11 +71,12 @@
     const banner = document.createElement("div");
     banner.id = "iris-test-result";
     banner.setAttribute("data-passed", String(passed));
+    // Normal flow at the top of the page so it never overlaps the content.
     banner.style.cssText =
-      "position:fixed;top:0;left:0;right:0;z-index:99999;padding:.6rem 1rem;" +
-      "font:600 14px system-ui;color:#fff;background:" + (passed ? "#2e7d32" : "#c62828");
+      "padding:.5rem 1rem;font:600 13px system-ui;color:#fff;" +
+      "background:" + (passed ? "#2e7d32" : "#c62828");
     banner.textContent = passed ? "✓ iris test passed" : "✗ iris test failed: " + failures.join(" | ");
-    document.body.appendChild(banner);
+    document.body.insertBefore(banner, document.body.firstChild);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);

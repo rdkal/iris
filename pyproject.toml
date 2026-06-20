@@ -13,8 +13,9 @@ authors = [{ name = "rdkal" }]
 dependencies = ["htpy>=25", "markupsafe>=2"]
 
 [project.optional-dependencies]
-test = ["pytest>=8", "playwright>=1.40"]
-dev = ["pytest>=8", "playwright>=1.40", "ruff>=0.5"]
+fastapi = ["fastapi", "uvicorn"]
+test = ["pytest>=8", "playwright>=1.40", "fastapi", "uvicorn", "httpx"]
+dev = ["pytest>=8", "playwright>=1.40", "fastapi", "uvicorn", "httpx", "ruff>=0.5"]
 
 [project.urls]
 Homepage = "https://github.com/rdkal/iris"
