@@ -65,7 +65,8 @@ GALLERY_CSS = """
 
 .panel-code { position: relative; border-top: 1px solid var(--border); }
 .panel-code pre {
-  margin: 0; padding: 1rem; overflow: auto; font-size: 0.85em; line-height: 1.5;
+  margin: 0; padding: 1rem; font-size: 0.85em; line-height: 1.5;
+  white-space: pre-wrap; overflow-wrap: anywhere;  /* wrap long lines on mobile */
   background: color-mix(in oklab, var(--bg), black 35%);
 }
 .panel-code .copy {
@@ -81,16 +82,6 @@ GALLERY_CSS = """
 .test-frame {
   width: 100%; height: 340px; display: block;
   border: 0; border-top: 1px solid var(--border); background: var(--bg);
-}
-.routes { border-top: 1px solid var(--border); padding: calc(var(--space) * 2); }
-.routes-head, .code-head {
-  font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
-}
-.route { margin-top: 0.5rem; }
-.route-url { color: var(--accent); font-size: 0.85em; }
-.routes pre {
-  margin: 0.25rem 0 0; padding: 0.75rem; overflow: auto; font-size: 0.85em;
-  background: color-mix(in oklab, var(--bg), black 35%); border-radius: 0.4rem;
 }
 """
 
@@ -166,16 +157,6 @@ def render_gallery(theme: Theme = DARK, *, title: str = "iris — components") -
     return str(document)
 
 
-def _routes_panel(example: BrowserExample) -> Any:
-    return h.div(".routes")[
-        h.div(".routes-head")["routes (URL → component tree)"],
-        [
-            h.div(".route")[h.code(".route-url")[url], h.pre[h.code[source]]]
-            for url, source in example.routes.items()
-        ],
-    ]
-
-
 def _test_panel(example: BrowserExample) -> Any:
     return h.article(".panel-card", id=_slug(example.title))[
         h.div(".panel-head")[example.title],
@@ -185,7 +166,6 @@ def _test_panel(example: BrowserExample) -> Any:
             sandbox="allow-scripts allow-same-origin allow-forms",
             loading="lazy",
         ),
-        _routes_panel(example) if example.routes else None,
         h.div(".panel-code")[
             h.button(".copy", type="button", data_copy=True)["Copy"],
             h.pre[h.code[example.source]],

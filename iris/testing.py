@@ -17,10 +17,7 @@ Playwright is an optional extra: ``pip install iris-ui[test]``.
 
 from __future__ import annotations
 
-import ast
-import inspect
 import json
-import textwrap
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
@@ -157,28 +154,6 @@ def run_in_browser(test: BrowserTest | str, *, timeout: int = 5000) -> Result:
 
 # --- Browser-test registry (shared by pytest and the docs gallery) ------- #
 
-def _parse_routes_source(func: Callable[..., Any]) -> dict[str, str]:
-    """Extract ``routes={url: tree}`` from a browser_example as URL -> Python source."""
-
-    tree = ast.parse(textwrap.dedent(inspect.getsource(func)))
-    routes: dict[str, str] = {}
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
-        if name != "browser_test":
-            continue
-        for kw in node.keywords:
-            if kw.arg == "routes" and isinstance(kw.value, ast.Dict):
-                for key, value in zip(kw.value.keys, kw.value.values):
-                    try:
-                        url = ast.literal_eval(key)
-                    except Exception:
-                        url = ast.unparse(key)
-                    routes[str(url)] = ast.unparse(value)
-    return routes
-
-
 @dataclass
 class BrowserExample:
     """A registered browser test that doubles as gallery documentation."""
@@ -195,12 +170,6 @@ class BrowserExample:
         """The Python that produced the test (the body of the example)."""
 
         return _example_source(self.func)
-
-    @property
-    def routes(self) -> dict[str, str]:
-        """URL -> the Python component tree that serves it."""
-
-        return _parse_routes_source(self.func)
 
 
 _BROWSER_EXAMPLES: list[BrowserExample] = []

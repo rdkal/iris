@@ -17,21 +17,20 @@ def test_demos_are_registered():
     assert len(titles) >= 5
 
 
-def test_each_demo_parses_routes_as_source():
+def test_demo_source_lines_stay_short():
+    # the displayed test code should read well in a narrow viewport
     for ex in browser_examples():
-        assert ex.routes, f"{ex.title} has no parsed routes"
-        for url, source in ex.routes.items():
-            assert url.startswith("/")
-            assert source.strip()
+        for line in ex.source.splitlines():
+            assert len(line) <= 60, f"{ex.title}: {line!r}"
 
 
-def test_render_tests_embeds_iframes_routes_and_source():
+def test_render_tests_embeds_iframes_and_source():
     html = render_tests()
     assert html.lower().startswith("<!doctype html>")
     assert "test-frame" in html and "srcdoc=" in html
     assert 'href="index.html"' in html  # back-link to the gallery
-    assert "routes (URL" in html
-    # a known route source appears in a code block
+    # the full test source (which includes the routes) is shown
+    assert "browser_test(" in html
     assert "Search results" in html
 
 
