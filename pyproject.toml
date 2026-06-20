@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "iris-ui"
+version = "0.0.1"
+description = "A small, server-side UI toolkit for Python, built on htpy."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "rdkal" }]
+dependencies = ["htpy>=25", "markupsafe>=2"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "playwright>=1.40"]
+dev = ["pytest>=8", "playwright>=1.40", "ruff>=0.5"]
+
+[project.urls]
+Homepage = "https://github.com/rdkal/iris"
+
+[tool.hatch.build.targets.wheel]
+packages = ["iris"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
