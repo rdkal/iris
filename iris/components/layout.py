@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..core import component, root
+from ..core import component, raw, root
 from ..html import h
 from ..theme import DARK, Theme, stylesheet
 
@@ -57,7 +57,7 @@ def Page(children: Any, *, title: str | None = None, theme: Theme = DARK,
             h.meta(charset="utf-8"),
             h.meta(name="viewport", content="width=device-width, initial-scale=1"),
             h.title[title] if title else None,
-            h.style[stylesheet(theme)],
+            h.style[raw(stylesheet(theme))],
         ],
         root(h.body, "iris", **attrs)[children],
     ]

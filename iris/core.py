@@ -23,6 +23,7 @@ from typing import Any, Callable
 
 import htpy
 from htpy import Node
+from markupsafe import Markup
 
 __all__ = [
     "component",
@@ -31,6 +32,7 @@ __all__ = [
     "is_fx",
     "classes",
     "root",
+    "raw",
     "Example",
     "registered_components",
 ]
@@ -46,6 +48,18 @@ def _as_list(value: Any) -> list[Any]:
     if isinstance(value, Iterable):
         return list(value)
     return [value]
+
+
+def raw(text: str) -> Markup:
+    """Mark trusted text as safe, unescaped markup.
+
+    Needed for inline ``<style>``/``<script>`` content: htpy escapes element text
+    (including quotes), which would corrupt CSS selectors like
+    ``[data-theme="light"]`` or JS string literals.  Only pass content you
+    control — never user input.
+    """
+
+    return Markup(text)
 
 
 def classes(*values: Any) -> list[Any]:

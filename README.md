@@ -41,12 +41,27 @@ def ArticleCard(children, *, title, body, tags):
     ]
 ```
 
+## Component gallery
+
+Every component carries its own usage examples (`@Comp.example`), which double as
+live, browsable docs. Build the static gallery (live render + copyable source for
+each component) and open it:
+
+```bash
+python -m iris.gallery build -o _site
+open _site/index.html
+```
+
+It deploys to GitHub Pages automatically via `.github/workflows/pages.yml` on
+push to `main` (enable Pages → "GitHub Actions" in repo settings).
+
 ## Status
 
 Early. See [DESIGN.md](./DESIGN.md) for the full design and [TODO.md](./TODO.md)
 for what's built. Implemented so far: the core (`@component`, `render`,
-`render_stream`, `is_fx`), the theme tokens + dark stylesheet, and the layout and
-surface components.
+`render_stream`, `is_fx`, `raw`), the theme tokens + dark stylesheet, the layout,
+surface, data-display and feedback components + `Button`, the component example
+mechanism, and the static gallery + Pages workflow.
 
 ## Install
 

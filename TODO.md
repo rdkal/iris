@@ -2,8 +2,9 @@
 
 Status of every piece in [DESIGN.md](./DESIGN.md). Everything is **Designed**.
 Built so far: core, theme + dark stylesheet, layout/surface/data/feedback
-components + `Button`, and the component **example mechanism** (`@Comp.example`
-captures source + live render — the gallery data layer) — all with tests.
+components + `Button`, the component **example mechanism** (`@Comp.example`
+captures source + live render), and the **static gallery** (`python -m
+iris.gallery build`) + GitHub Pages workflow — all with tests.
 
 Legend: ✅ done · ⬜ not started
 
@@ -136,9 +137,9 @@ Legend: ✅ done · ⬜ not started
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
 | `@component.example` / `example=` kwarg + source capture (registry) | ✅ | ✅ | ✅ |
-| Gallery chrome (phone frame, code panel, theme toggle) | ✅ | ⬜ | ⬜ |
-| Static build (`python -m iris.gallery build`) | ✅ | ⬜ | ⬜ |
-| GitHub Pages workflow (`.github/workflows/pages.yml`) | ✅ | ⬜ | ⬜ |
+| Gallery chrome (panels, code+copy, theme toggle; phone frame later) | ✅ | ✅ | ✅ |
+| Static build (`python -m iris.gallery build`) | ✅ | ✅ | ✅ |
+| GitHub Pages workflow (`.github/workflows/pages.yml`) | ✅ | ✅ | ⬜ |
 
 ## Project / infra
 

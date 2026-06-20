@@ -75,6 +75,12 @@ def test_page_body_attrs():
     assert 'data-app="x"' in out
 
 
+def test_page_stylesheet_not_html_escaped():
+    # inline <style> must keep CSS attribute selectors verbatim, not &#34;
+    out = render(Page["hi"])
+    assert '[data-theme="light"]' in out
+
+
 def test_stylesheet_has_root_and_light_and_base():
     css = stylesheet()
     assert ":root" in css
