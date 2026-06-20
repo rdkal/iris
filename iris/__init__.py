@@ -17,9 +17,11 @@ See DESIGN.md for the full design. Quick start::
 from __future__ import annotations
 
 from .components import (
+    AppShell,
     Avatar,
     Badge,
     Banner,
+    Breadcrumbs,
     Button,
     Card,
     Center,
@@ -27,7 +29,9 @@ from .components import (
     Divider,
     Empty,
     Grid,
+    Header,
     List,
+    NavLink,
     Page,
     Panel,
     Progress,
@@ -38,7 +42,9 @@ from .components import (
     Spinner,
     Stack,
     Stat,
+    Tab,
     Table,
+    Tabs,
     Tag,
 )
 from .core import (
@@ -84,6 +90,13 @@ __all__ = [
     "Center",
     "Divider",
     "Spacer",
+    # navigation
+    "Header",
+    "NavLink",
+    "Tab",
+    "Tabs",
+    "AppShell",
+    "Breadcrumbs",
     # surfaces
     "Card",
     "Sheet",

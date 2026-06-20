@@ -329,3 +329,91 @@ a:hover {
 .progress::-moz-progress-bar {
   background: var(--accent);
 }
+
+/* --- Navigation --------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  padding: calc(var(--space) * 2) calc(var(--space) * 3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.header-title { font-weight: 600; }
+
+.navlink { color: var(--text); }
+.navlink:hover { color: var(--accent); text-decoration: none; }
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--space) * 1);
+  font-size: 0.9em;
+  color: var(--muted);
+}
+.breadcrumbs a { color: var(--muted); }
+.breadcrumbs a:hover { color: var(--text); }
+.crumb-sep { color: var(--border); }
+.crumb-current { color: var(--text); }
+
+/* App shell: header on top, main fills, tabs as a bottom bar on mobile. */
+.appshell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+.appshell-main {
+  flex: 1 1 auto;
+  padding: calc(var(--space) * 3);
+}
+
+.tabs {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space);
+  padding: calc(var(--space) * 1);
+  padding-bottom: max(calc(var(--space) * 1), env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--space) * 0.5);
+  flex: 1 1 0;
+  padding: calc(var(--space) * 1);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.78em;
+  min-height: calc(var(--space) * 9); /* comfortable touch target */
+  justify-content: center;
+}
+.tab:hover { color: var(--text); text-decoration: none; }
+.tab.active { color: var(--accent); }
+.tab-icon { font-size: 1.25em; line-height: 1; }
+
+/* Wider screens: tabs become a left side rail. */
+@media (min-width: 48rem) {
+  .appshell { flex-direction: row; }
+  .appshell > .header { display: none; }
+  .tabs {
+    position: sticky;
+    top: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-self: flex-start;
+    height: 100dvh;
+    border-top: 0;
+    border-right: 1px solid var(--border);
+    min-width: calc(var(--space) * 16);
+  }
+  .tab { flex: 0 0 auto; }
+}
+
+/* Loading indicator toggled by iris-fixi.js during a request. */
+.fx-loading { opacity: 0.6; cursor: progress; }

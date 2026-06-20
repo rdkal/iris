@@ -15,6 +15,7 @@ from .layout import (
     Spacer,
     Stack,
 )
+from .nav import AppShell, Breadcrumbs, Header, NavLink, Tab, Tabs
 from .surfaces import Card, Panel, Sheet
 
 __all__ = [
@@ -27,6 +28,13 @@ __all__ = [
     "Center",
     "Divider",
     "Spacer",
+    # navigation
+    "Header",
+    "NavLink",
+    "Tab",
+    "Tabs",
+    "AppShell",
+    "Breadcrumbs",
     # surfaces
     "Card",
     "Sheet",
