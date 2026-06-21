@@ -12,6 +12,16 @@ def test_render_gallery_contains_components_and_chrome():
     assert 'id="theme-toggle"' in html
     assert "panel-card" in html and "data-copy" in html
     assert "navigator.clipboard" in html
+
+
+def test_hero_replaces_sticky_header_with_stacked_links():
+    html = render_gallery()
+    assert "gallery-header" not in html  # no fixed top bar
+    assert "hero-title" in html and "hero-nav" in html
+    # every page is a stacked link; the current page is marked active
+    for href in ["index.html", "tests.html", "frameworks.html", "ask.html"]:
+        assert f'href="{href}"' in html
+    assert "hero-link active" in html
     # a representative spread of components, each with an anchor section
     for name in ["Button", "Card", "Banner", "Table"]:
         assert f'id="{name}"' in html

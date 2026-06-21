@@ -11,7 +11,7 @@ from typing import Any
 import iris  # noqa: F401
 from . import demos  # noqa: F401
 from ..components import Button, Checkbox, Field, Form, Input, Select
-from ..core import Component, Example, raw, registered_components
+from ..core import Component, Example, classes, raw, registered_components
 from ..html import h
 from ..testing import BrowserExample, browser_examples
 from ..theme import DARK, Theme, stylesheet
@@ -31,9 +31,16 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-def _header_actions(current: str) -> Any:
-    return h.div(".header-actions")[
-        (h.a(".theme-btn", href=href)[label] for href, label in _PAGES if href != current),
+def _hero(current: str, subtitle: str) -> Any:
+    return h.header(".gallery-hero")[
+        h.h1(".hero-title")["iris"],
+        h.p(".hero-sub")[subtitle],
+        h.nav(".hero-nav")[
+            (
+                h.a(class_=classes("hero-link", {"active": href == current}), href=href)[label]
+                for href, label in _PAGES
+            )
+        ],
         h.button(".theme-btn", id="theme-toggle", type="button")["Toggle theme"],
     ]
 
@@ -41,16 +48,27 @@ def _header_actions(current: str) -> Any:
 GALLERY_CSS = """
 .gallery-main { max-width: 60rem; margin-inline: auto; }
 
-.gallery-header {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: calc(var(--space) * 2) calc(var(--space) * 3);
-  background: color-mix(in oklab, var(--bg), transparent 15%);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--border);
+.gallery-hero {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 10) calc(var(--space) * 3) calc(var(--space) * 6);
 }
-.gallery-header h1 { font-size: 1.1rem; }
-.gallery-header .sub { color: var(--muted); font-size: 0.85em; }
+.hero-title {
+  font-size: clamp(3rem, 14vw, 6rem); font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1;
+}
+.hero-sub { color: var(--muted); margin: 0; max-width: 34rem; }
+.hero-nav {
+  display: flex; flex-direction: column; gap: calc(var(--space) * 1.25);
+  width: min(22rem, 100%); margin-top: calc(var(--space) * 2);
+}
+.hero-link {
+  display: block; padding: calc(var(--space) * 1.5) calc(var(--space) * 2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); background: var(--surface); font-weight: 500;
+}
+.hero-link:hover { border-color: var(--accent); text-decoration: none; }
+.hero-link.active { border-color: var(--accent); color: var(--accent); }
 
 .theme-btn {
   font-size: 0.85em; padding: 0.3rem 0.8rem;
@@ -179,13 +197,7 @@ def render_gallery(theme: Theme = DARK, *, title: str = "iris — components") -
             h.style[raw(GALLERY_CSS)],
         ],
         h.body(".iris")[
-            h.header(".gallery-header")[
-                h.div[
-                    h.h1["iris"],
-                    h.div(".sub")["Live render + the exact source for every component."],
-                ],
-                _header_actions("index.html"),
-            ],
+            _hero("index.html", "Live render + the exact source for every component."),
             h.nav(".gallery-index")[
                 (h.a(href=f"#{c.name}")[c.name] for c in components)
             ],
@@ -225,13 +237,7 @@ def render_tests(theme: Theme = DARK, *, title: str = "iris — tests") -> str:
             h.style[raw(GALLERY_CSS)],
         ],
         h.body(".iris")[
-            h.header(".gallery-header")[
-                h.div[
-                    h.h1["iris · tests"],
-                    h.div(".sub")["Live fixi interactions — each panel is a real browser test."],
-                ],
-                _header_actions("tests.html"),
-            ],
+            _hero("tests.html", "Live fixi interactions — each panel is a real browser test."),
             h.nav(".gallery-index")[
                 (h.a(href=f"#{_slug(ex.title)}")[ex.title] for ex in examples)
             ],
@@ -269,13 +275,7 @@ def render_frameworks(theme: Theme = DARK, *, title: str = "iris — frameworks"
             h.style[raw(GALLERY_CSS)],
         ],
         h.body(".iris")[
-            h.header(".gallery-header")[
-                h.div[
-                    h.h1["iris · frameworks"],
-                    h.div(".sub")["Use iris with your web framework."],
-                ],
-                _header_actions("frameworks.html"),
-            ],
+            _hero("frameworks.html", "Use iris with your web framework."),
             h.nav(".gallery-index")[
                 (h.a(href=f"#{_slug(name)}")[name] for name in frameworks)
             ],
@@ -414,13 +414,7 @@ def render_ask(theme: Theme = DARK, *, title: str = "iris — ask") -> str:
             h.style[raw(GALLERY_CSS)],
         ],
         h.body(".iris")[
-            h.header(".gallery-header")[
-                h.div[
-                    h.h1["iris · ask"],
-                    h.div(".sub")["Forms from a Pydantic model — convenience over htpy + fixi + FastAPI."],
-                ],
-                _header_actions("ask.html"),
-            ],
+            _hero("ask.html", "Forms from a Pydantic model — convenience over htpy + fixi + FastAPI."),
             h.main(".gallery-main")[panels],
             h.script[raw(SCRIPT)],
         ],
