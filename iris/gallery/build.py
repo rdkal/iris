@@ -10,18 +10,20 @@ from typing import Any
 # registers the browser-test examples shown on the tests page.
 import iris  # noqa: F401
 from . import demos  # noqa: F401
+from ..components import Button, Checkbox, Field, Form, Input, Select
 from ..core import Component, Example, raw, registered_components
 from ..html import h
 from ..testing import BrowserExample, browser_examples
 from ..theme import DARK, Theme, stylesheet
 from .frameworks import FRAMEWORK_EXAMPLES, FrameworkExample
 
-__all__ = ["render_gallery", "render_tests", "render_frameworks", "build"]
+__all__ = ["render_gallery", "render_tests", "render_frameworks", "render_ask", "build"]
 
 _PAGES = [
     ("index.html", "Components"),
     ("tests.html", "Tests"),
     ("frameworks.html", "Frameworks"),
+    ("ask.html", "Ask"),
 ]
 
 
@@ -292,8 +294,142 @@ def render_frameworks(theme: Theme = DARK, *, title: str = "iris — frameworks"
     return str(document)
 
 
+_ASK_MODEL = '''from pydantic import BaseModel
+from typing import Literal
+
+
+class Signup(BaseModel):
+    email: str
+    password: str
+    role: Literal["admin", "user"] = "user"
+    subscribe: bool = False'''
+
+_ASK_FORM = '''from iris import ask
+
+ask.form(
+    Signup,
+    action="/signup",
+    target="#result",
+    swap="innerHTML",
+)'''
+
+_ASK_HANDLER = '''from typing import Annotated
+from fastapi import FastAPI, Form
+from iris import ask, Banner, Container, Page, h
+from iris.integrations.fastapi import IrisResponse
+
+app = FastAPI()
+
+
+@app.get("/signup")
+def signup_form() -> IrisResponse:
+    return IrisResponse(
+        Page(title="Sign up", fixi=True)[
+            Container[
+                ask.form(Signup, action="/signup",
+                         target="#result", swap="innerHTML"),
+                h.div(id="result"),
+            ]
+        ]
+    )
+
+
+@app.post("/signup")
+def signup(data: Annotated[Signup, Form()]) -> IrisResponse:
+    # Pydantic validates `data`. On failure FastAPI returns
+    # its 422 JSON and iris-ask.js marks the bad fields —
+    # no server-side error rendering needed.
+    return IrisResponse(
+        Banner(".success")[f"Welcome, {data.email}!"]
+    )'''
+
+
+def _ask_preview_form() -> Any:
+    return Form(action="/signup")[
+        Field(label="Email", name="email")[Input(name="email", type="email")],
+        Field(label="Password", name="password")[Input(name="password", type="password")],
+        Field(label="Role", name="role")[Select(name="role", options=["admin", "user"])],
+        Checkbox(name="subscribe", label="Subscribe to updates"),
+        Button(".primary", type="submit")["Sign up"],
+    ]
+
+
+def _ask_invalid_field() -> Any:
+    return Field(".invalid", label="Email", name="email",
+                 error="value is not a valid email address")[
+        Input(name="email", type="email", value="nope")
+    ]
+
+
+def _ask_panel(title: str, note: str, *, preview: Any = None, code: str | None = None) -> Any:
+    return h.article(".panel-card", id=_slug(title))[
+        h.div(".panel-head")[title],
+        h.p(".panel-note")[_doc_nodes(note)],
+        h.div(".panel-preview")[preview] if preview is not None else None,
+        h.div(".panel-code")[
+            h.button(".copy", type="button", data_copy=True)["Copy"],
+            h.pre[h.code[code]],
+        ] if code is not None else None,
+    ]
+
+
+def render_ask(theme: Theme = DARK, *, title: str = "iris — ask") -> str:
+    panels = [
+        _ask_panel(
+            "What ask is",
+            "``iris.ask`` builds a form from a Pydantic model — one ``Field`` + "
+            "control per model field, types mapped to input types. It's plain htpy "
+            "+ fixi + FastAPI conventions underneath; the model is the single source "
+            "of truth for both the form and validation.",
+        ),
+        _ask_panel("1. Define a model", "A normal Pydantic model.", code=_ASK_MODEL),
+        _ask_panel(
+            "2. Render the form",
+            "``ask.form`` returns a ``<form>`` that posts via fixi. Below is the "
+            "rendered result (built from the same form primitives).",
+            preview=_ask_preview_form(),
+            code=_ASK_FORM,
+        ),
+        _ask_panel(
+            "3. The FastAPI handler",
+            "GET renders the form; POST validates with Pydantic. There is **no "
+            "server-side error rendering** — FastAPI's default ``422`` carries the "
+            "field errors.",
+            code=_ASK_HANDLER,
+        ),
+        _ask_panel(
+            "4. Validation errors",
+            "``iris-ask.js`` (bundled by ``Page(fixi=True)``) reads FastAPI's 422 "
+            "JSON and adds ``.invalid`` + the message to each field by name — "
+            "without a swap. The rendered invalid state:",
+            preview=_ask_invalid_field(),
+        ),
+    ]
+    document = h.html(lang="en")[
+        h.head[
+            h.meta(charset="utf-8"),
+            h.meta(name="viewport", content="width=device-width, initial-scale=1"),
+            h.title[title],
+            h.style[raw(stylesheet(theme))],
+            h.style[raw(GALLERY_CSS)],
+        ],
+        h.body(".iris")[
+            h.header(".gallery-header")[
+                h.div[
+                    h.h1["iris · ask"],
+                    h.div(".sub")["Forms from a Pydantic model — convenience over htpy + fixi + FastAPI."],
+                ],
+                _header_actions("ask.html"),
+            ],
+            h.main(".gallery-main")[panels],
+            h.script[raw(SCRIPT)],
+        ],
+    ]
+    return str(document)
+
+
 def build(out: str | Path = "_site", *, theme: Theme = DARK) -> Path:
-    """Render the gallery: index.html, tests.html, and frameworks.html."""
+    """Render the gallery: index, tests, frameworks, and ask pages."""
 
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -301,4 +437,5 @@ def build(out: str | Path = "_site", *, theme: Theme = DARK) -> Path:
     index.write_text(render_gallery(theme), encoding="utf-8")
     (out_dir / "tests.html").write_text(render_tests(theme), encoding="utf-8")
     (out_dir / "frameworks.html").write_text(render_frameworks(theme), encoding="utf-8")
+    (out_dir / "ask.html").write_text(render_ask(theme), encoding="utf-8")
     return index

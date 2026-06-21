@@ -2,6 +2,13 @@
 
 A small, server-side UI toolkit for Python, built on [htpy](https://htpy.dev).
 
+> **iris is not an abstraction.** It's **convenience and guidelines on top of
+> [htpy](https://htpy.dev), [fixi](https://github.com/bigskysoftware/fixi), and
+> [FastAPI](https://fastapi.tiangolo.com)** — plus a dark, minimal **UI component
+> library** you can use. Everything iris produces is plain htpy/HTML and plain
+> fixi attributes; you can always read it, drop down to the underlying tools, and
+> come back. iris never hides them or locks you in.
+
 You build pages by **composing components** — plain function calls that look and
 nest just like htpy, but hand you ready-made UI pieces (`Button`, `Card`,
 `Grid`, `Stack`, …) that are dark, minimal, and mobile-first by default. Browse
@@ -213,10 +220,21 @@ return a full `Page` for a normal request and just the inner fragment for a
 fixi swap.
 
 Forms need no special machinery: a `Form` is a styled `<form>` with `fx_*`
-attributes, so submission, swapping, and re-rendering with validation errors are
-just htpy + fixi + your framework's route. iris only contributes the styled
-inputs and an optional `error` slot on `Field` — to show errors you re-render the
-same view with them passed in, like any other component.
+attributes; iris ships the styled inputs (`Input`, `Textarea`, `Select`,
+`Checkbox`, `Switch`) and a `Field` wrapper with an error slot.
+
+### `iris.ask` — forms from a Pydantic model
+
+The `iris.ask` subpackage is convenience on top of those primitives:
+`ask.form(Model, action="/x")` renders a `<form>` (a `Field` + control per model
+field, types → input types) that posts via fixi. **Validation is server-side and
+there's no error-rendering code:** your FastAPI handler validates with Pydantic,
+FastAPI returns its default `422` JSON (`{detail:[{loc,msg}]}`), and
+`iris-ask.js` (bundled by `Page(fixi=True)`) maps each error onto the input named
+by `loc[-1]` — adding `.invalid` + the message to its `Field`, and cancelling the
+swap. It's plain htpy + fixi + FastAPI conventions underneath; inspect the output
+and drop down anytime. (FastAPI needs the model/handler at module scope so it can
+resolve annotations.)
 
 ---
 

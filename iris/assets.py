@@ -7,7 +7,7 @@ from importlib import resources
 
 from markupsafe import Markup
 
-__all__ = ["read_static", "fixi_js", "iris_fixi_js", "iris_test_js"]
+__all__ = ["read_static", "fixi_js", "iris_fixi_js", "iris_test_js", "iris_ask_js"]
 
 
 @lru_cache(maxsize=None)
@@ -32,3 +32,7 @@ def iris_fixi_js() -> Markup:
 
 def iris_test_js() -> Markup:
     return read_static("iris-test.js")
+
+
+def iris_ask_js() -> Markup:
+    return read_static("iris-ask.js")

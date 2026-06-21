@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..assets import fixi_js, iris_fixi_js
+from ..assets import fixi_js, iris_ask_js, iris_fixi_js
 from ..core import component, raw, root
 from ..html import h
 from ..theme import DARK, Theme, stylesheet
@@ -51,8 +51,8 @@ def Page(children: Any, *, title: str | None = None, theme: Theme = DARK,
 
     Mobile-first: ships the ``viewport`` meta so phones render at device width.
     ``**attrs`` are applied to ``<body>``.  Pass ``fixi=True`` to inline
-    ``fixi.js`` + ``iris-fixi.js`` for interactive pages (data-driven pages need
-    no JS, so it's off by default).
+    ``fixi.js`` + ``iris-fixi.js`` + ``iris-ask.js`` for interactive pages
+    (data-driven pages need no JS, so it's off by default).
     """
 
     return h.html(lang=lang)[
@@ -64,7 +64,11 @@ def Page(children: Any, *, title: str | None = None, theme: Theme = DARK,
         ],
         root(h.body, "iris", **attrs)[
             children,
-            (h.script[fixi_js()], h.script[iris_fixi_js()]) if fixi else None,
+            (
+                h.script[fixi_js()],
+                h.script[iris_fixi_js()],
+                h.script[iris_ask_js()],
+            ) if fixi else None,
         ],
     ]
 
