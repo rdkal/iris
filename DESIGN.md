@@ -357,6 +357,18 @@ def test_order_flow():
 collector is how the **gallery doubles as a test**: load the built gallery, click
 the theme toggle, `errors.assert_none()`.
 
+### pytest fixtures
+
+iris ships a pytest plugin (auto-loaded via a `pytest11` entry point) with
+convenience fixtures that skip cleanly when Playwright/Chromium aren't installed:
+
+- `iris_run` — run a stub `browser_test` and get its `Result`:
+  `iris_run(browser_test(...)).assert_ok()`.
+- `iris_page` — a fresh Playwright page; `iris_errors` — a `collect_errors`
+  attached to it. Pair with `live_app` for end-to-end tests.
+- `iris_browser` — the underlying headless Chromium (function-scoped, so it never
+  holds a long-lived `sync_playwright` — safe to mix with your own Playwright).
+
 ### No-browser checks come free
 
 Components are pure `data → HTML` functions, so the cheapest tests need no iris

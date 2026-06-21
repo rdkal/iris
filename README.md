@@ -114,6 +114,15 @@ test.write("test.html")            # open in any browser — it runs itself
 run_in_browser(test).assert_ok()   # or drive headless Chromium
 ```
 
+iris also ships pytest fixtures (auto-loaded): `iris_run` runs a stub test,
+`iris_page`/`iris_errors` drive a real page, e.g. with `live_app` for end-to-end
+tests. They skip cleanly when Chromium isn't installed.
+
+```python
+def test_it(iris_run):
+    iris_run(test).assert_ok()
+```
+
 ## FastAPI
 
 ```python
