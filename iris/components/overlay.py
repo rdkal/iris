@@ -86,7 +86,12 @@ def Popover(children: Any, *, trigger: Any, id: str | None = None, **attrs: Any)
 
 @component
 def Toast(children: Any, **attrs: Any) -> Any:
-    """A floating, auto-dismissing notification (CSS-animated; no JS)."""
+    """A notification box.
+
+    On its own it's a static inline box. For floating, auto-dismissing
+    notifications, place it in a fixed ``.toast-region`` (e.g. a fragment fixi
+    swaps in): ``h.div(".toast-region")[Toast(".success")["Saved"]]``.
+    """
 
     return root(h.div, "toast", role="status", **attrs)[children]
 
