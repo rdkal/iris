@@ -8,7 +8,7 @@ from iris.gallery import render_ask
 def test_render_ask_has_examples_and_preview():
     html = render_ask()
     assert html.lower().startswith("<!doctype html>")
-    assert "iris · ask" in html
+    assert "hero-title" in html  # centered iris hero
     assert "ask.form(" in html
     assert "Annotated[Signup, Form()]" in html
     assert 'class="form"' in html          # live preview form
