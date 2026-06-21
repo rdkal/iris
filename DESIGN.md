@@ -122,7 +122,11 @@ the htpy `[...]` slot where it holds content.
 - **Forms:** `Form`, `Field`, `Input`, `Textarea`, `Select`, `Switch`,
   `Checkbox`, `Button`
 - **Feedback:** `Skeleton`, `Spinner`, `Toast`, `Banner`, `Progress`
-- **Overlay:** `Drawer` (bottom-sheet on mobile), `Modal`, `Menu`, `Popover`
+- **Overlay:** `Drawer` (bottom-sheet on mobile), `Modal`, `Menu`, `Popover` —
+  built on the native [Popover API](https://developer.mozilla.org/docs/Web/API/Popover_API)
+  (`popover` + `popovertarget`), so they open/close (incl. light-dismiss and Esc)
+  with **zero JavaScript**; anchored panels use CSS anchor positioning where
+  supported.
 - **Icons:** a small inline-SVG set (stroke icons, themed via `currentColor`)
 
 ---

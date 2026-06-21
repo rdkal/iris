@@ -1,12 +1,14 @@
 # iris — TODO
 
-Status of every piece in [DESIGN.md](./DESIGN.md). Everything is **Designed**.
-Built so far: core, theme + dark stylesheet, layout/surface/data/feedback/nav
-components + `Button`, the component **example mechanism**, the **gallery** (+
-tests & frameworks pages) + Pages, **fixi** (`fixi.js` + `iris-fixi.js`,
-`Page(fixi=True)`), **FastAPI integration** (`IrisResponse`), and **both browser
-testing modes** (`browser_test`/`run_in_browser`, `collect_errors`, `live_app`)
-— all with tests (incl. real-browser and live-app tests).
+Status of every piece in [DESIGN.md](./DESIGN.md). The full component library is
+built (layout, surfaces, data, feedback, nav, forms, **overlays, icons**), along
+with the example mechanism, the gallery (components / tests / frameworks / ask
+pages) + Pages, fixi interactivity, FastAPI integration (`IrisResponse`),
+`iris.ask` (forms from Pydantic), and both browser testing modes — all with tests
+(incl. real-browser and live-app tests).
+
+Remaining: pytest fixtures for the testing helpers. (Flask/Django/WSGI adapters
+are out of scope for now.)
 
 Legend: ✅ done · ⬜ not started
 
@@ -90,24 +92,24 @@ Legend: ✅ done · ⬜ not started
 | --- | :---: | :---: | :---: |
 | `Skeleton` | ✅ | ✅ | ✅ |
 | `Spinner` | ✅ | ✅ | ✅ |
-| `Toast` | ✅ | ⬜ | ⬜ |
+| `Toast` | ✅ | ✅ | ✅ |
 | `Banner` | ✅ | ✅ | ✅ |
 | `Progress` | ✅ | ✅ | ✅ |
 
-## Components — Overlay
+## Components — Overlay (native Popover API, zero JS)
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Drawer` (bottom-sheet on mobile) | ✅ | ⬜ | ⬜ |
-| `Modal` | ✅ | ⬜ | ⬜ |
-| `Menu` | ✅ | ⬜ | ⬜ |
-| `Popover` | ✅ | ⬜ | ⬜ |
+| `Drawer` (bottom-sheet on mobile) | ✅ | ✅ | ✅ |
+| `Modal` | ✅ | ✅ | ✅ |
+| `Menu` | ✅ | ✅ | ✅ |
+| `Popover` | ✅ | ✅ | ✅ |
 
 ## Components — Icons
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| Inline-SVG icon set (`currentColor`) | ✅ | ⬜ | ⬜ |
+| Inline-SVG icon set (`currentColor`) | ✅ | ✅ | ✅ |
 
 ## Interactivity (fixi)
 
@@ -132,7 +134,6 @@ Legend: ✅ done · ⬜ not started
 | --- | :---: | :---: | :---: |
 | `IrisResponse` (FastAPI / Starlette, streaming) | ✅ | ✅ | ✅ |
 | FastAPI reference app (`examples/fastapi_app.py`) | ✅ | ✅ | ✅ |
-| Flask / Django / WSGI `render()` adapters | ✅ | ⬜ | ⬜ |
 
 ## Testing (`iris.testing`)
 
@@ -163,4 +164,4 @@ Legend: ✅ done · ⬜ not started
 | --- | :---: | :---: | :---: |
 | `pyproject.toml` + packaging (extras: `test`) | ✅ | ✅ | ✅ |
 | `README.md` | ✅ | ✅ | ⬜ |
-| `examples/fastapi_app` reference app | ✅ | ⬜ | ⬜ |
+| `examples/fastapi_app` reference app | ✅ | ✅ | ✅ |

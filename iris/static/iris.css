@@ -204,6 +204,83 @@ textarea.input { min-height: calc(var(--space) * 16); resize: vertical; }
   left: calc(100% - var(--space) * 3); background: var(--bg);
 }
 
+/* --- Icons -------------------------------------------------------------- */
+
+.icon { display: inline-block; vertical-align: -0.15em; flex: none; }
+
+/* --- Overlays (native Popover API) -------------------------------------- */
+
+[popover] { border: 0; padding: 0; color: var(--text); }
+[popover]::backdrop { background: rgba(0, 0, 0, 0.5); }
+
+.overlay-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space); padding: calc(var(--space) * 2) calc(var(--space) * 3);
+  border-bottom: 1px solid var(--border);
+}
+.overlay-title { font-weight: 600; }
+.overlay-body { padding: calc(var(--space) * 3); }
+.overlay-close {
+  background: none; border: 0; color: var(--muted); cursor: pointer;
+  font-size: 1.4em; line-height: 1; padding: 0 calc(var(--space) * 0.5);
+}
+.overlay-close:hover { color: var(--text); }
+
+/* Modal: centered card with backdrop. */
+.modal {
+  margin: auto; max-width: min(32rem, calc(100vw - 2rem));
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.modal:popover-open { animation: iris-pop 0.15s ease-out; }
+
+/* Drawer: slides in from an edge; full-width bottom sheet on mobile. */
+.drawer {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
+}
+.drawer-bottom {
+  inset: auto 0 0 0; border-radius: var(--radius) var(--radius) 0 0; border-bottom: 0;
+}
+.drawer-left { inset: 0 auto 0 0; width: min(20rem, 80vw); border-left: 0; }
+.drawer-right { inset: 0 0 0 auto; width: min(20rem, 80vw); border-right: 0; }
+.drawer-bottom:popover-open { animation: iris-slide-up 0.2s ease-out; }
+
+/* Menu & Popover: anchored panels (CSS anchor positioning where supported). */
+.menu, .popover {
+  position: absolute; top: anchor(bottom); left: anchor(left); margin-top: 0.4rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.menu { padding: calc(var(--space) * 0.5); min-width: 10rem; }
+.popover { padding: calc(var(--space) * 2); max-width: 18rem; }
+.menu-item {
+  display: block; width: 100%; text-align: left; background: none; border: 0;
+  color: var(--text); cursor: pointer; border-radius: calc(var(--radius) / 2);
+  padding: calc(var(--space) * 1.25) calc(var(--space) * 1.5);
+}
+.menu-item:hover { background: color-mix(in oklab, var(--surface), white 6%); }
+
+@keyframes iris-pop { from { opacity: 0; transform: scale(0.96); } }
+@keyframes iris-slide-up { from { transform: translateY(100%); } }
+
+/* Toast: floating, auto-dismissing notification. */
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--space) * 4);
+  transform: translateX(-50%);
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); z-index: 1000;
+  animation: iris-toast 4.5s forwards;
+}
+.toast.success { border-color: #3ba55d; }
+.toast.error { border-color: #d9534f; }
+@keyframes iris-toast {
+  0% { opacity: 0; transform: translate(-50%, 1rem); }
+  8%, 92% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; visibility: hidden; }
+}
+
 /* --- Data display ------------------------------------------------------- */
 
 .badge {

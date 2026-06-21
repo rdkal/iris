@@ -28,16 +28,21 @@ from .components import (
     Checkbox,
     Container,
     Divider,
+    Drawer,
     Empty,
     Field,
     Form,
     Grid,
     Header,
+    Icon,
     Input,
     List,
+    Menu,
+    Modal,
     NavLink,
     Page,
     Panel,
+    Popover,
     Progress,
     Row,
     Select,
@@ -53,6 +58,7 @@ from .components import (
     Tabs,
     Tag,
     Textarea,
+    Toast,
 )
 from .core import (
     Example,
@@ -130,4 +136,12 @@ __all__ = [
     "Select",
     "Checkbox",
     "Switch",
+    # overlay
+    "Modal",
+    "Drawer",
+    "Menu",
+    "Popover",
+    "Toast",
+    # icons
+    "Icon",
 ]

@@ -5,6 +5,7 @@ from __future__ import annotations
 from .data import Avatar, Badge, Empty, List, Stat, Table, Tag
 from .feedback import Banner, Progress, Skeleton, Spinner
 from .forms import Button, Checkbox, Field, Form, Input, Select, Switch, Textarea
+from .icons import Icon
 from .layout import (
     Center,
     Container,
@@ -16,6 +17,7 @@ from .layout import (
     Stack,
 )
 from .nav import AppShell, Breadcrumbs, Header, NavLink, Tab, Tabs
+from .overlay import Drawer, Menu, Modal, Popover, Toast
 from .surfaces import Card, Panel, Sheet
 
 __all__ = [
@@ -61,4 +63,12 @@ __all__ = [
     "Select",
     "Checkbox",
     "Switch",
+    # overlay
+    "Modal",
+    "Drawer",
+    "Menu",
+    "Popover",
+    "Toast",
+    # icons
+    "Icon",
 ]
