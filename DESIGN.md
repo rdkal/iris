@@ -128,6 +128,8 @@ the htpy `[...]` slot where it holds content.
   with **zero JavaScript**; anchored panels use CSS anchor positioning where
   supported.
 - **Icons:** a small inline-SVG set (stroke icons, themed via `currentColor`)
+- **Charts:** `Plot` (grammar-of-graphics) with `Dot` marks over `x`/`y`/`color`
+  — server-rendered SVG, no JS (see §9)
 
 ---
 
@@ -386,7 +388,73 @@ Playwright is an optional extra: `pip install iris[test]`.
 
 ---
 
-## 9. The showcase / docs site (GitHub Pages)
+## 9. Data visualization: Plot
+
+iris renders charts the way it renders everything else: **server-side SVG, no
+JS**, composed like any component and themed by the tokens (`--accent`, `--text`,
+`--muted`, `--border`, `currentColor`). A `Plot` is a function call that returns
+an htpy `<svg>` node — inspect it, drop to raw SVG, mix it with other components.
+
+The API is **grammar-of-graphics**, inspired by
+[Observable Plot](https://observablehq.com/plot): a plot is a set of **marks**
+bound to data via **channels** (`x`, `y`, `color`, …). Marks compose in the
+plot's `[...]` slot.
+
+```python
+from iris import Plot, Dot
+
+people = [
+    {"weight": 60, "height": 165, "sex": "f"},
+    {"weight": 82, "height": 178, "sex": "m"},
+    # …
+]
+
+Plot(width=640, height=400)[
+    Dot(people, x="weight", y="height", color="sex"),
+]
+```
+
+- **`Plot[...]`** holds marks and owns the shared scales, axes, and the `<svg>`
+  frame.
+- **`Dot(data, x=, y=, color=)`** is the point mark (Observable's `dot`). `data`
+  is a list of records (dicts); `x`/`y`/`color` are field names.
+- The plot infers **scales** from the data — quantitative (linear) for numeric
+  `x`/`y`, categorical (ordinal) for `color` — and draws axes/ticks. Category
+  colors come from a small palette derived from the theme.
+
+### Scope: start tiny
+
+First cut — exactly what's needed and no more:
+
+- one mark: **`Dot`** (points);
+- channels: **`x`, `y`** (quantitative) and **`color`** (categorical);
+- linear x/y scales, ordinal color, basic axes + light gridlines;
+- list-of-dicts data, field-name channels.
+
+Deliberately deferred (the grammar leaves room — add a mark, add a channel,
+without changing the call style): line / bar / area / rule marks; time and log
+scales; size and opacity channels; faceting; legends; tooltips/hover.
+
+### Why server-side SVG
+
+It matches every iris principle: no build step, no client JS, themed by the same
+CSS variables, mobile-first (responsive via `viewBox` + `width: 100%`), and the
+output is plain, inspectable markup. Pure Python computes the scales and emits
+`<circle>` / `<line>` / `<text>` — no charting dependency. If interactivity
+(hover, zoom) is wanted later it can be layered with fixi or a tiny
+progressive-enhancement script — opt-in, never required.
+
+### Networks / graphs — *later, designed only*
+
+A `Graph` (node-link network diagram) is planned as a sibling: `Graph(nodes,
+edges)` → server-rendered SVG, same compositional style. The hard part is
+layout; the first version will likely take **precomputed node positions** (or a
+simple deterministic layout) rather than a force simulation, to stay server-side
+and dependency-free. Not started — we'll spec it once `Plot` lands.
+
+---
+
+## 10. The showcase / docs site (GitHub Pages)
 
 A live gallery where every component is shown **rendered** next to the **exact
 Python that produced it** — the fastest way to start.
@@ -440,7 +508,7 @@ jobs:
 
 ---
 
-## 10. Project layout
+## 11. Project layout
 
 ```
 iris/
@@ -449,7 +517,7 @@ iris/
   html.py                # re-export of htpy + iris extras (h)
   theme.py               # Theme dataclass, tokens, stylesheet() generator
   components/
-    layout.py  surfaces.py  nav.py  data.py  forms.py  feedback.py  overlay.py  icons.py
+    layout.py  surfaces.py  nav.py  data.py  forms.py  feedback.py  overlay.py  icons.py  charts.py
   integrations/
     fastapi.py  starlette.py  flask.py  django.py
   testing.py             # collect_errors, serve, live_app + pytest fixtures (extra: iris[test])
@@ -466,7 +534,7 @@ DESIGN.md  README.md  pyproject.toml
 
 ---
 
-## 11. Decisions
+## 12. Decisions
 
 - **Min Python:** 3.11+.
 - **Composition model:** components are htpy-style calls; compose by nesting and
@@ -478,8 +546,11 @@ DESIGN.md  README.md  pyproject.toml
 - **Testing:** convenience over Playwright (never an abstraction) — `collect_errors`
   (JS exceptions, `console.error`, fixi `fx:error`, bad status codes) plus
   `serve` (isolated) and `live_app` (real app) loaders. Optional extra `iris[test]`.
+- **Charts:** `Plot` is grammar-of-graphics (Observable-inspired), rendered as
+  server-side SVG — no JS, themed by the tokens. Start with the `Dot` mark and
+  `x`/`y`/`color`; grow marks/scales without changing the call style.
 
-## 12. Roadmap (suggested order)
+## 13. Roadmap (suggested order)
 
 1. `core` (`@component`, `render`) + `html` (`h`) + `theme` (tokens + stylesheet).
 2. Layout + surfaces + the dark stylesheet.
@@ -488,4 +559,5 @@ DESIGN.md  README.md  pyproject.toml
 5. Testing harness (`iris.testing`): `collect_errors` + `serve`/`live_app` + fixtures.
 6. Gallery framework + static build + GitHub Pages workflow.
 7. Fill out data display, forms, feedback, overlay, icons.
-```
+8. Charts: `Plot` + `Dot` mark (`x`/`y`/`color`) as server-rendered SVG; later
+   more marks/scales, then a `Graph` (network) sibling.

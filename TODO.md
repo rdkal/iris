@@ -7,8 +7,9 @@ pages) + Pages, fixi interactivity, FastAPI integration (`IrisResponse`),
 `iris.ask` (forms from Pydantic), and both browser testing modes — all with tests
 (incl. real-browser and live-app tests).
 
-Everything in scope is built. (Flask/Django/WSGI adapters are intentionally out
-of scope for now.)
+Next up (designed, not yet built): **Charts** — a grammar-of-graphics `Plot`
+with a `Dot` mark (see DESIGN §9). A `Graph` (network) sibling is deferred.
+(Flask/Django/WSGI adapters are intentionally out of scope for now.)
 
 Legend: ✅ done · ⬜ not started
 
@@ -110,6 +111,16 @@ Legend: ✅ done · ⬜ not started
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
 | Inline-SVG icon set (`currentColor`) | ✅ | ✅ | ✅ |
+
+## Charts (server-rendered SVG, grammar-of-graphics — see DESIGN §9)
+
+| Item | Designed | Implemented | Tested |
+| --- | :---: | :---: | :---: |
+| `Plot[...]` frame: shared scales, axes, gridlines, `<svg>` | ✅ | ⬜ | ⬜ |
+| `Dot` mark + channels `x`, `y` (linear), `color` (ordinal) | ✅ | ⬜ | ⬜ |
+| Categorical color palette derived from theme | ✅ | ⬜ | ⬜ |
+| Charts gallery examples | ✅ | ⬜ | ⬜ |
+| `Graph` (network node-link) — *deferred, spec after Plot* | ⬜ | ⬜ | ⬜ |
 
 ## Interactivity (fixi)
 
