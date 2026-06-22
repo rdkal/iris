@@ -28,6 +28,7 @@ from .components import (
     Checkbox,
     Container,
     Divider,
+    Dot,
     Drawer,
     Empty,
     Field,
@@ -42,6 +43,7 @@ from .components import (
     NavLink,
     Page,
     Panel,
+    Plot,
     Popover,
     Progress,
     Row,
@@ -144,4 +146,7 @@ __all__ = [
     "Toast",
     # icons
     "Icon",
+    # charts
+    "Plot",
+    "Dot",
 ]

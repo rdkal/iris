@@ -463,6 +463,24 @@ textarea.input { min-height: calc(var(--space) * 16); resize: vertical; }
   background: var(--accent);
 }
 
+/* --- Charts (Plot) ------------------------------------------------------ */
+
+.plot { margin: 0; max-width: 100%; }
+.plot-svg { width: 100%; height: auto; display: block; }
+.plot-grid { stroke: var(--border); stroke-opacity: 0.6; }
+.plot-tick { fill: var(--muted); font-size: 11px; }
+.plot-label { fill: var(--text); font-size: 12px; }
+.plot-dot { fill: var(--accent); }
+
+.plot-legend {
+  display: flex; flex-wrap: wrap; gap: calc(var(--space) * 2);
+  margin-bottom: calc(var(--space) * 1.5); font-size: 0.85em; color: var(--muted);
+}
+.plot-legend-item { display: inline-flex; align-items: center; gap: calc(var(--space) * 1); }
+.plot-swatch {
+  width: 0.8em; height: 0.8em; border-radius: 0.2em; display: inline-block; flex: none;
+}
+
 /* --- Navigation --------------------------------------------------------- */
 
 .header {
