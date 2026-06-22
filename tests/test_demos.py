@@ -34,28 +34,8 @@ def test_render_tests_embeds_iframes_and_source():
     assert "Search results" in html
 
 
-# --- Browser: every demo is a passing test ------------------------------- #
+# --- Browser: every demo is a passing test (via the iris_run fixture) ---- #
 
-pytest.importorskip("playwright.sync_api")
-
-
-def _chromium_available() -> bool:
-    try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as pw:
-            pw.chromium.launch().close()
-        return True
-    except Exception:
-        return False
-
-
-browser = pytest.mark.skipif(not _chromium_available(), reason="Chromium not installed")
-
-
-@browser
 @pytest.mark.parametrize("example", browser_examples(), ids=lambda e: e.title)
-def test_demo_passes_in_browser(example):
-    from iris.testing import run_in_browser
-
-    run_in_browser(example.test).assert_ok()
+def test_demo_passes_in_browser(example, iris_run):
+    iris_run(example.test).assert_ok()

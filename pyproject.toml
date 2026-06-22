@@ -20,6 +20,9 @@ dev = ["pytest>=8", "playwright>=1.40", "fastapi", "uvicorn", "httpx", "python-m
 [project.urls]
 Homepage = "https://github.com/rdkal/iris"
 
+[project.entry-points.pytest11]
+iris = "iris._pytest"
+
 [tool.hatch.build.targets.wheel]
 packages = ["iris"]
 

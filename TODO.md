@@ -7,8 +7,8 @@ pages) + Pages, fixi interactivity, FastAPI integration (`IrisResponse`),
 `iris.ask` (forms from Pydantic), and both browser testing modes — all with tests
 (incl. real-browser and live-app tests).
 
-Remaining: pytest fixtures for the testing helpers. (Flask/Django/WSGI adapters
-are out of scope for now.)
+Everything in scope is built. (Flask/Django/WSGI adapters are intentionally out
+of scope for now.)
 
 Legend: ✅ done · ⬜ not started
 
@@ -144,7 +144,7 @@ Legend: ✅ done · ⬜ not started
 | `collect_errors` (JS exceptions, console.error, fx:error, status) | ✅ | ✅ | ✅ |
 | Gallery doubles as a browser test (no JS errors) | ✅ | ✅ | ✅ |
 | `live_app` — real ASGI app (end-to-end browser test) | ✅ | ✅ | ✅ |
-| pytest fixtures | ✅ | ⬜ | ⬜ |
+| pytest fixtures (`iris_run`/`iris_page`/`iris_errors`/`iris_browser`) | ✅ | ✅ | ✅ |
 
 ## Showcase / docs (GitHub Pages)
 

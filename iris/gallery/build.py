@@ -17,13 +17,17 @@ from ..testing import BrowserExample, browser_examples
 from ..theme import DARK, Theme, stylesheet
 from .frameworks import FRAMEWORK_EXAMPLES, FrameworkExample
 
-__all__ = ["render_gallery", "render_tests", "render_frameworks", "render_ask", "build"]
+__all__ = [
+    "render_gallery", "render_tests", "render_frameworks", "render_ask",
+    "render_pytest", "build",
+]
 
 _PAGES = [
     ("index.html", "Components"),
     ("tests.html", "Tests"),
     ("frameworks.html", "Frameworks"),
     ("ask.html", "Ask"),
+    ("pytest.html", "pytest"),
 ]
 
 
@@ -422,8 +426,148 @@ def render_ask(theme: Theme = DARK, *, title: str = "iris — ask") -> str:
     return str(document)
 
 
+_PYTEST_INSTALL = '''# iris with the test extra (pytest, playwright, fastapi, …)
+pip install "iris-ui[test] @ git+https://github.com/rdkal/iris.git@v0.1.0"
+
+# download the headless browser Playwright drives (one time)
+python -m playwright install chromium'''
+
+_PYTEST_BROWSER = '''from iris import Button, h
+from iris.testing import browser_test, click, expect_text
+
+
+def test_lazy_load(iris_run):
+    test = browser_test(
+        view=h.div[
+            h.div("#out")["empty"],
+            Button(fx_action="/content", fx_target="#out",
+                   fx_swap="innerHTML")["Load"],
+        ],
+        routes={"/content": h.p["loaded!"]},
+        steps=[
+            expect_text("empty"),
+            click("button"),
+            expect_text("loaded!"),
+        ],
+    )
+    iris_run(test).assert_ok()'''
+
+_PYTEST_APP = '''from typing import Annotated
+from fastapi import FastAPI, Form
+from pydantic import BaseModel
+
+from iris import ask, Banner, Container, Page, h
+from iris.integrations.fastapi import IrisResponse
+from iris.testing import live_app
+
+
+# Model + app at module scope so FastAPI can
+# resolve the (stringified) annotations.
+class Signup(BaseModel):
+    email: str
+    age: int
+
+
+app = FastAPI()
+
+
+@app.get("/")
+def index() -> IrisResponse:
+    return IrisResponse(
+        Page(title="Sign up", fixi=True)[
+            Container[
+                ask.form(Signup, action="/signup",
+                         target="#result", swap="innerHTML"),
+                h.div(id="result"),
+            ]
+        ]
+    )
+
+
+@app.post("/signup")
+def signup(data: Annotated[Signup, Form()]) -> IrisResponse:
+    return IrisResponse(
+        Banner(".success")[f"Welcome, {data.email}"]
+    )
+
+
+def test_signup(iris_page, iris_errors):
+    with live_app(app) as base_url:
+        iris_page.goto(base_url)
+        iris_page.fill("[name=email]", "a@b.com")
+        iris_page.fill("[name=age]", "30")
+        iris_page.click("button[type=submit]")
+        iris_page.wait_for_selector("text=Welcome, a@b.com")
+    iris_errors.assert_none()  # no JS/fixi errors, no bad status'''
+
+_PYTEST_RENDER = '''from iris import render, Button
+
+
+def test_button_has_action():
+    html = render(Button(fx_action="/go")["Go"])
+    assert 'fx-action="/go"' in html'''
+
+
+def render_pytest(theme: Theme = DARK, *, title: str = "iris — pytest") -> str:
+    panels = [
+        _ask_panel(
+            "Prerequisites",
+            "iris ships a pytest plugin that auto-loads (via a ``pytest11`` entry "
+            "point), so the fixtures below need no ``conftest``. Install the "
+            "``test`` extra and the browser; browser tests **skip cleanly** if "
+            "Chromium isn't installed.",
+            code=_PYTEST_INSTALL,
+        ),
+        _ask_panel(
+            "Fixtures",
+            "``iris_run`` — run a stub ``browser_test`` → ``Result``. "
+            "``iris_page`` — a fresh Playwright page. "
+            "``iris_errors`` — a ``collect_errors`` attached to it "
+            "(JS exceptions, ``console.error``, fixi ``fx:error``, bad status). "
+            "``iris_browser`` — the underlying Chromium.",
+        ),
+        _ask_panel(
+            "Browser-only (no server)",
+            "Define the view, the ``routes`` (URL → component tree) and the "
+            "``steps``; iris runs them in the page and reports pass/fail. Ideal "
+            "for fixi interactions without a backend.",
+            code=_PYTEST_BROWSER,
+        ),
+        _ask_panel(
+            "Full app (FastAPI + live_app)",
+            "``live_app`` runs your real ASGI app on a port; drive it with "
+            "``iris_page`` (plain Playwright) and assert nothing broke with "
+            "``iris_errors``. Put the model + app at **module scope** so FastAPI "
+            "can resolve annotations.",
+            code=_PYTEST_APP,
+        ),
+        _ask_panel(
+            "No browser needed",
+            "Components are pure ``data → HTML`` functions, so the cheapest checks "
+            "just call ``render()`` and assert on the string — no fixtures, no "
+            "browser.",
+            code=_PYTEST_RENDER,
+        ),
+    ]
+    document = h.html(lang="en")[
+        h.head[
+            h.meta(charset="utf-8"),
+            h.meta(name="viewport", content="width=device-width, initial-scale=1"),
+            h.title[title],
+            h.style[raw(stylesheet(theme))],
+            h.style[raw(GALLERY_CSS)],
+        ],
+        h.body(".iris")[
+            _hero("pytest.html", "Test your iris pages with pytest — browser-only or against your real app."),
+            h.main(".gallery-main")[panels],
+            h.script[raw(SCRIPT)],
+        ],
+    ]
+    return str(document)
+
+
 def build(out: str | Path = "_site", *, theme: Theme = DARK) -> Path:
-    """Render the gallery: index, tests, frameworks, and ask pages."""
+    """Render the gallery: index, tests, frameworks, ask, and pytest pages."""
 
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -432,4 +576,5 @@ def build(out: str | Path = "_site", *, theme: Theme = DARK) -> Path:
     (out_dir / "tests.html").write_text(render_tests(theme), encoding="utf-8")
     (out_dir / "frameworks.html").write_text(render_frameworks(theme), encoding="utf-8")
     (out_dir / "ask.html").write_text(render_ask(theme), encoding="utf-8")
+    (out_dir / "pytest.html").write_text(render_pytest(theme), encoding="utf-8")
     return index
