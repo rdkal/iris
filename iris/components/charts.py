@@ -38,15 +38,24 @@ class Mark:
     data: list[dict[str, Any]]
     x: str
     y: str
-    color: str | None = None
+    color: str | None = None      # field name -> categorical scale + legend
+    fill: str | None = None       # constant colour for every point in the layer
+    label: Any = None             # legend label for a constant-colour layer
     r: float = 4.0
 
 
 def Dot(data: Iterable[dict[str, Any]], *, x: str, y: str,
-        color: str | None = None, r: float = 4.0) -> Mark:
-    """The point mark (Observable's ``dot``). ``data`` is a list of records."""
+        color: str | None = None, fill: str | None = None,
+        label: Any = None, r: float = 4.0) -> Mark:
+    """The point mark (Observable's ``dot``). ``data`` is a list of records.
 
-    return Mark("dot", list(data), x=x, y=y, color=color, r=r)
+    ``color`` is a *field name* mapped through a categorical palette (with a
+    legend). ``fill`` is a *constant* colour for the whole layer — use it to
+    stack several series with chosen colours, giving each a ``label`` so it
+    appears in the legend.
+    """
+
+    return Mark("dot", list(data), x=x, y=y, color=color, fill=fill, label=label, r=r)
 
 
 def _flatten(children: Any) -> list[Mark]:
@@ -154,6 +163,8 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
             if m.color:
                 points.append(h.circle(cx=cx, cy=cy, r=_n(m.r),
                                         style=f"fill:{color_for[row.get(m.color)]}"))
+            elif m.fill:
+                points.append(h.circle(cx=cx, cy=cy, r=_n(m.r), style=f"fill:{m.fill}"))
             else:
                 points.append(h.circle(".plot-dot", cx=cx, cy=cy, r=_n(m.r)))
 
@@ -165,39 +176,68 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
         h.g(class_="plot-points")[points],
     ]
 
-    show_legend = bool(categories) if legend is None else (legend and bool(categories))
+    # legend entries: categorical colour categories + labelled constant layers
+    legend_entries: list[tuple[str, str]] = [(str(cat), color_for[cat]) for cat in categories]
+    for m in marks:
+        if m.label is not None and not m.color:
+            legend_entries.append((str(m.label), m.fill or "var(--accent)"))
+
+    show = bool(legend_entries) if legend is None else (legend and bool(legend_entries))
     legend_node = h.div(".plot-legend")[
         (
             h.span(".plot-legend-item")[
-                h.span(".plot-swatch", style=f"background:{color_for[cat]}"),
-                str(cat),
+                h.span(".plot-swatch", style=f"background:{color}"),
+                label,
             ]
-            for cat in categories
+            for label, color in legend_entries
         )
-    ] if show_legend else None
+    ] if show else None
 
     return h.figure(class_=cls, **attrs)[legend_node, svg]
 
 
-# --- Examples ------------------------------------------------------------ #
-
-_SAMPLE = [
-    {"weight": 52, "height": 158, "sex": "f"}, {"weight": 61, "height": 165, "sex": "f"},
-    {"weight": 68, "height": 170, "sex": "f"}, {"weight": 55, "height": 161, "sex": "f"},
-    {"weight": 78, "height": 179, "sex": "m"}, {"weight": 85, "height": 183, "sex": "m"},
-    {"weight": 72, "height": 174, "sex": "m"}, {"weight": 90, "height": 188, "sex": "m"},
-]
+# --- Examples (hand-formatted narrow for the docs; ruff leaves them be) -- #
 
 
 @Plot.example("Scatter with color")
 def _():
-    return Plot(width=520, height=320)[
-        Dot(_SAMPLE, x="weight", y="height", color="sex"),
+    # fmt: off
+    people = [
+        {"kg": 52, "cm": 158, "sex": "f"},
+        {"kg": 61, "cm": 165, "sex": "f"},
+        {"kg": 68, "cm": 170, "sex": "f"},
+        {"kg": 78, "cm": 179, "sex": "m"},
+        {"kg": 85, "cm": 183, "sex": "m"},
+        {"kg": 90, "cm": 188, "sex": "m"},
     ]
+    return Plot(width=420, height=300)[
+        Dot(
+            people,
+            x="kg",
+            y="cm",
+            color="sex",
+        ),
+    ]
+    # fmt: on
 
 
-@Plot.example("Single series (no legend)")
+@Plot.example("Pick colors (two series)")
 def _():
-    return Plot(width=520, height=320)[
-        Dot(_SAMPLE, x="weight", y="height"),
+    # fmt: off
+    a = [
+        {"x": 1, "y": 2},
+        {"x": 2, "y": 4},
+        {"x": 3, "y": 3},
     ]
+    b = [
+        {"x": 1, "y": 5},
+        {"x": 2, "y": 3},
+        {"x": 3, "y": 6},
+    ]
+    return Plot(width=420, height=300)[
+        Dot(a, x="x", y="y",
+            fill="#6ea8fe", label="A"),
+        Dot(b, x="x", y="y",
+            fill="#22d3aa", label="B"),
+    ]
+    # fmt: on
