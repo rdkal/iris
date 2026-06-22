@@ -65,6 +65,32 @@ def test_empty_plot_is_safe():
     assert '<figure class="plot"' in out and "<svg" in out
 
 
+def test_constant_fill_layers_with_labels():
+    out = render(Plot()[
+        Dot([{"x": 1, "y": 2}], x="x", y="y", fill="#6ea8fe", label="A"),
+        Dot([{"x": 1, "y": 5}], x="x", y="y", fill="#22d3aa", label="B"),
+    ])
+    assert "fill:#6ea8fe" in out and "fill:#22d3aa" in out
+    assert out.count("plot-swatch") == 2 and ">A<" in out and ">B<" in out
+
+
+def test_constant_fill_without_label_has_no_legend():
+    out = render(Plot()[Dot([{"x": 1, "y": 2}], x="x", y="y", fill="red")])
+    assert "plot-legend" not in out and "fill:red" in out
+
+
+def test_plot_example_source_is_inlined_and_narrow():
+    from iris.core import registered_components
+
+    plot = next(c for c in registered_components() if c.name == "Plot")
+    for ex in plot.examples:
+        src = ex.source
+        assert "# fmt" not in src                       # directives stripped
+        assert "_SAMPLE" not in src                      # data is inlined
+        for line in src.splitlines():
+            assert len(line) <= 42, f"{ex.title}: {line!r}"
+
+
 # --- Browser smoke: a plot page has no JS/render errors ------------------ #
 
 pytest.importorskip("playwright.sync_api")

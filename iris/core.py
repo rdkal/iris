@@ -140,8 +140,9 @@ class _Bound:
 def _example_source(func: Callable[..., Node]) -> str:
     """Extract the displayable body of an example function as source code.
 
-    Drops the decorator/``def`` lines and a single leading ``return`` so the
-    gallery shows just the component expression the author wrote.
+    Drops the decorator/``def`` lines, any ``# fmt:`` directives (used to keep
+    examples hand-formatted narrow for the docs), and a single leading
+    ``return`` so the gallery shows just the component expression.
     """
 
     lines = textwrap.dedent(inspect.getsource(func)).splitlines()
@@ -150,7 +151,11 @@ def _example_source(func: Callable[..., Node]) -> str:
         i += 1
     while i < len(lines) and not lines[i].lstrip().startswith("def "):
         i += 1
-    body = textwrap.dedent("\n".join(lines[i + 1:])).rstrip()
+    body_lines = [
+        line for line in lines[i + 1:]
+        if not line.strip().startswith("# fmt:")
+    ]
+    body = textwrap.dedent("\n".join(body_lines)).rstrip()
     if body.startswith("return "):
         body = body[len("return "):]
     return body
