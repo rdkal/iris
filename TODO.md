@@ -1,14 +1,13 @@
 # iris — TODO
 
 Status of every piece in [DESIGN.md](./DESIGN.md). The full component library is
-built (layout, surfaces, data, feedback, nav, forms, **overlays, icons**), along
-with the example mechanism, the gallery (components / tests / frameworks / ask
-pages) + Pages, fixi interactivity, FastAPI integration (`IrisResponse`),
-`iris.ask` (forms from Pydantic), and both browser testing modes — all with tests
-(incl. real-browser and live-app tests).
+built (layout, surfaces, data, feedback, nav, forms, overlays, icons, **charts**),
+along with the example mechanism, the gallery (components / tests / frameworks /
+ask / pytest pages) + Pages, fixi interactivity, FastAPI integration
+(`IrisResponse`), `iris.ask` (forms from Pydantic), and both browser testing
+modes — all with tests (incl. real-browser and live-app tests).
 
-Next up (designed, not yet built): **Charts** — a grammar-of-graphics `Plot`
-with a `Dot` mark (see DESIGN §9). A `Graph` (network) sibling is deferred.
+Deferred: a `Graph` (network node-link) chart — spec'd after `Plot`.
 (Flask/Django/WSGI adapters are intentionally out of scope for now.)
 
 Legend: ✅ done · ⬜ not started
@@ -116,10 +115,11 @@ Legend: ✅ done · ⬜ not started
 
 | Item | Designed | Implemented | Tested |
 | --- | :---: | :---: | :---: |
-| `Plot[...]` frame: shared scales, axes, gridlines, `<svg>` | ✅ | ⬜ | ⬜ |
-| `Dot` mark + channels `x`, `y` (linear), `color` (ordinal) | ✅ | ⬜ | ⬜ |
-| Categorical color palette derived from theme | ✅ | ⬜ | ⬜ |
-| Charts gallery examples | ✅ | ⬜ | ⬜ |
+| `Plot[...]` frame: shared scales, axes, gridlines, `<svg>` | ✅ | ✅ | ✅ |
+| `Dot` mark + channels `x`, `y` (linear), `color` (ordinal) | ✅ | ✅ | ✅ |
+| Categorical color palette | ✅ | ✅ | ✅ |
+| Color legend (auto when `color`; `legend=` configurable) | ✅ | ✅ | ✅ |
+| Charts gallery examples | ✅ | ✅ | ✅ |
 | `Graph` (network node-link) — *deferred, spec after Plot* | ⬜ | ⬜ | ⬜ |
 
 ## Interactivity (fixi)

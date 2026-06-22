@@ -420,7 +420,10 @@ Plot(width=640, height=400)[
   is a list of records (dicts); `x`/`y`/`color` are field names.
 - The plot infers **scales** from the data — quantitative (linear) for numeric
   `x`/`y`, categorical (ordinal) for `color` — and draws axes/ticks. Category
-  colors come from a small palette derived from the theme.
+  colors come from a small categorical palette.
+- A **legend** is shown automatically when a `color` channel is present;
+  `Plot(legend=True | False)` forces it on or off (`legend=None`, the default, is
+  auto).
 
 ### Scope: start tiny
 
@@ -429,11 +432,12 @@ First cut — exactly what's needed and no more:
 - one mark: **`Dot`** (points);
 - channels: **`x`, `y`** (quantitative) and **`color`** (categorical);
 - linear x/y scales, ordinal color, basic axes + light gridlines;
+- automatic (configurable) color legend;
 - list-of-dicts data, field-name channels.
 
 Deliberately deferred (the grammar leaves room — add a mark, add a channel,
 without changing the call style): line / bar / area / rule marks; time and log
-scales; size and opacity channels; faceting; legends; tooltips/hover.
+scales; size and opacity channels; faceting; tooltips/hover.
 
 ### Why server-side SVG
 
