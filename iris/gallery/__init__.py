@@ -10,6 +10,9 @@ Build it::
 
 from __future__ import annotations
 
-from .build import build, render_ask, render_frameworks, render_gallery, render_tests
+from .build import build, render_ask, render_frameworks, render_gallery, render_pytest, render_tests
 
-__all__ = ["build", "render_gallery", "render_tests", "render_frameworks", "render_ask"]
+__all__ = [
+    "build", "render_gallery", "render_tests", "render_frameworks",
+    "render_ask", "render_pytest",
+]

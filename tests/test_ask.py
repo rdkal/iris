@@ -135,3 +135,16 @@ def test_valid_submit_swaps_success():
             assert page.locator(".field.invalid").count() == 0
         finally:
             b.close()
+
+
+def test_signup_via_fixtures(iris_page, iris_errors):
+    # mirrors the "Full app" example on the pytest docs page
+    from iris.testing import live_app
+
+    with live_app(_app) as base_url:
+        iris_page.goto(base_url, wait_until="load")
+        iris_page.fill('[name="email"]', "a@b.com")
+        iris_page.fill('[name="age"]', "30")
+        iris_page.click('button[type="submit"]')
+        iris_page.wait_for_selector("text=Welcome, a@b.com")
+    iris_errors.assert_none()
