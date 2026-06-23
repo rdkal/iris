@@ -454,27 +454,32 @@ progressive-enhancement script — opt-in, never required.
 A network is **two tables** (nodes, edges) plus a **layout** that gives each node
 an `(x, y)`. Layout is just the *position scale* for graphs — the analog of
 Plot's x/y scales, derived from structure instead of fields. After that it's the
-same grammar, so graphs are **Plot-unified**: drawn with Plot marks, sharing its
-scales, SVG frame, palette, and legend.
+same grammar, so graphs stay **grammar-of-graphics**: `Graph` is sugar that runs
+the layout and forwards composed **layers** to a `Plot`.
 
 ```python
-from iris import Graph
+from iris import Graph, Node, Link
 
-Graph(nodes, edges, layout="force", node_color="group",
-      node_size="degree", edge_width="weight", directed=True)
+Graph(nodes, edges, layout="force")[
+    Link(width="weight", directed=True),         # edge layer
+    Node(color="group", size="degree", label="name"),  # node layer
+]
 ```
 
-- **`Graph(nodes, edges, …)`** is a convenience wrapper: it runs the layout,
-  resolves each edge's endpoints to coordinates, and returns a `Plot` built from
-  two marks — so it *is* a Plot underneath.
-- Marks (also usable directly on a `Plot`):
-  - **`Node(points, x=, y=, color=, size=, label=)`** — point mark (Plot's `Dot`
-    plus `size` and `label` channels).
-  - **`Link(segments, x1=, y1=, x2=, y2=, color=, width=, directed=)`** — segment
-    mark; `directed` adds an arrowhead.
+- **`Graph(nodes, edges, layout=…)[ …layers… ]`** runs the layout, then builds a
+  `Plot(axes=False)` from the layers — so it *is* a Plot underneath. With no
+  layers it defaults to `[Link(), Node()]`. Each node gets a computed `degree`.
+- **Layers** are ordinary Plot marks:
+  - **`Node(color=, size=, label=)`** / **`Link(width=, directed=, source=,
+    target=)`** with **no data** bind to the graph (positions from the layout;
+    `Link` resolves `source`/`target` ids to endpoints).
+  - Any layer **with** data (e.g. a `Dot`, or a `Link` with explicit coords) is
+    **forwarded to the plot unchanged** — add whatever extra layers you like.
+  - The same `Node`/`Link` marks, given data + coordinates, work directly on a
+    bare `Plot` too.
 - **Layouts:** `force` (Fruchterman–Reingold, pure Python, seeded/deterministic),
-  `circular`, `grid`, and **precomputed** (nodes carry `x`/`y`). Graph mode draws
-  with **no axes** and **equal aspect** so the layout isn't distorted.
+  `circular`, `grid`, **precomputed** (nodes carry `x`/`y`). Graph mode draws with
+  **no axes** and **equal aspect** so the layout isn't distorted.
 - **Legend** reuses Plot's (node `color`); deferred: size legend.
 
 ### Interactivity: `iris-plot.js` (opt-in)

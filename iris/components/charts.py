@@ -8,16 +8,22 @@ plot's ``[...]`` slot::
 
     Plot()[ Dot(people, x="weight", y="height", color="sex") ]
 
-Networks are Plot-unified: ``Graph(nodes, edges, layout=...)`` runs a layout,
-resolves edges to coordinates, and returns a ``Plot`` of ``Link`` + ``Node``
-marks.
+Networks are Plot-unified and stay grammar-of-graphics: ``Graph(nodes, edges,
+layout=...)`` runs a layout and forwards composed **layers** to a ``Plot``. A
+``Node``/``Link`` layer with no data binds to the graph (positions from the
+layout); any layer *with* data passes straight through to the plot::
+
+    Graph(nodes, edges, layout="force")[
+        Link(width="weight", directed=True),
+        Node(color="group", size="degree", label="name"),
+    ]
 """
 
 from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from secrets import token_hex
 from typing import Any, Iterable
 
@@ -35,10 +41,14 @@ PALETTE = [
 
 @dataclass
 class Mark:
-    """A plot layer. ``kind`` selects how its channels are interpreted."""
+    """A plot layer. ``kind`` selects how its channels are interpreted.
+
+    ``data`` may be ``None`` for a node/link layer used inside a ``Graph`` — the
+    graph binds its data and positions.
+    """
 
     kind: str
-    data: list[dict[str, Any]]
+    data: list[dict[str, Any]] | None = None
     # point channels (dot / node)
     x: str | None = None
     y: str | None = None
@@ -54,6 +64,8 @@ class Mark:
     y2: str | None = None
     width: str | float | None = None
     directed: bool = False
+    source: str | None = None
+    target: str | None = None
 
 
 def Dot(data: Iterable[dict[str, Any]], *, x: str, y: str, color: str | None = None,
@@ -64,25 +76,28 @@ def Dot(data: Iterable[dict[str, Any]], *, x: str, y: str, color: str | None = N
     return Mark("dot", list(data), x=x, y=y, color=color, fill=fill, label=label, r=r)
 
 
-def Node(data: Iterable[dict[str, Any]], *, x: str = "x", y: str = "y",
+def Node(data: Iterable[dict[str, Any]] | None = None, *, x: str = "x", y: str = "y",
          color: str | None = None, fill: str | None = None, label: str | None = None,
          size: str | float | None = None, r: float = 6.0) -> Mark:
     """The node mark — ``Dot`` plus ``size`` (field or constant px) and ``label``
-    (field) channels."""
+    (field). Omit ``data`` to use it as a ``Graph`` layer (positions from the
+    layout)."""
 
-    return Mark("node", list(data), x=x, y=y, color=color, fill=fill,
-                label=label, size=size, r=r)
+    return Mark("node", None if data is None else list(data), x=x, y=y, color=color,
+                fill=fill, label=label, size=size, r=r)
 
 
-def Link(data: Iterable[dict[str, Any]], *, x1: str = "x1", y1: str = "y1",
-         x2: str = "x2", y2: str = "y2", color: str | None = None,
-         fill: str | None = None, width: str | float | None = None,
-         directed: bool = False) -> Mark:
-    """The segment mark connecting (x1,y1)->(x2,y2). ``directed`` adds an
-    arrowhead."""
+def Link(data: Iterable[dict[str, Any]] | None = None, *, x1: str = "x1", y1: str = "y1",
+         x2: str = "x2", y2: str = "y2", color: str | None = None, fill: str | None = None,
+         width: str | float | None = None, directed: bool = False,
+         source: str | None = None, target: str | None = None) -> Mark:
+    """The segment mark connecting (x1,y1)->(x2,y2); ``directed`` adds an
+    arrowhead. Omit ``data`` to use it as a ``Graph`` edge layer — endpoints come
+    from the layout via ``source``/``target`` node ids."""
 
-    return Mark("link", list(data), x1=x1, y1=y1, x2=x2, y2=y2, color=color,
-                fill=fill, width=width, directed=directed)
+    return Mark("link", None if data is None else list(data), x1=x1, y1=y1, x2=x2, y2=y2,
+                color=color, fill=fill, width=width, directed=directed,
+                source=source, target=target)
 
 
 def _flatten(children: Any) -> list[Mark]:
@@ -123,12 +138,13 @@ def _nice_ticks(lo: float, hi: float, count: int = 5) -> list[float]:
 
 
 def _mark_coords(m: Mark) -> tuple[list[float], list[float]]:
+    data = m.data or []
     if m.kind == "link":
-        xs = [r[m.x1] for r in m.data] + [r[m.x2] for r in m.data]
-        ys = [r[m.y1] for r in m.data] + [r[m.y2] for r in m.data]
+        xs = [r[m.x1] for r in data] + [r[m.x2] for r in data]
+        ys = [r[m.y1] for r in data] + [r[m.y2] for r in data]
     else:
-        xs = [r[m.x] for r in m.data]
-        ys = [r[m.y] for r in m.data]
+        xs = [r[m.x] for r in data]
+        ys = [r[m.y] for r in data]
     return xs, ys
 
 
@@ -137,7 +153,7 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
          legend: bool | None = None, x_label: str | None = None,
          y_label: str | None = None, axes: bool = True, interactive: bool = False,
          **attrs: Any) -> Any:
-    marks = _flatten(children)
+    marks = [m for m in _flatten(children) if m.data]
     cls = classes("plot", attrs.pop("class_", None))
     xs: list[float] = []
     ys: list[float] = []
@@ -151,7 +167,6 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
                   viewBox=f"0 0 {_n(width)} {_n(height)}")
         ]
 
-    # colour categories across all marks that map a colour field
     categories: list[Any] = []
     for m in marks:
         if m.color:
@@ -161,7 +176,6 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
                     categories.append(cat)
     color_for = {cat: PALETTE[i % len(PALETTE)] for i, cat in enumerate(categories)}
 
-    # size scale (node marks with a size *field*)
     size_vals = [row[m.size] for m in marks
                  if m.kind == "node" and isinstance(m.size, str) for row in m.data]
     s_lo, s_hi = (min(size_vals), max(size_vals)) if size_vals else (0.0, 1.0)
@@ -174,7 +188,6 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
         v = row[m.size]
         return 4.0 if s_hi == s_lo else 4.0 + (v - s_lo) / (s_hi - s_lo) * 12.0
 
-    # width scale (link marks with a width *field*)
     w_vals = [row[m.width] for m in marks
               if m.kind == "link" and isinstance(m.width, str) for row in m.data]
     w_lo, w_hi = (min(w_vals), max(w_vals)) if w_vals else (0.0, 1.0)
@@ -201,7 +214,6 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
         def sy(v: float) -> float:
             return py0 + (v - y0) / (y1 - y0) * (py1 - py0)
     else:
-        # graph mode: equal aspect, centred, no axes
         pad = 14
         x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
         dx, dy = (x1 - x0) or 1, (y1 - y0) or 1
@@ -290,8 +302,6 @@ def Plot(children: Any = None, *, width: float = 640, height: float = 400,
                 width=_n(width), height=_n(height),
                 viewBox=f"0 0 {_n(width)} {_n(height)}", role="img")[content]
 
-    # legend: colour categories + constant-fill layers that carry a label
-    # (a node mark's `label` is a per-node text field, not a legend entry).
     legend_entries: list[tuple[str, str]] = [(str(c), color_for[c]) for c in categories]
     for m in marks:
         if m.kind != "node" and m.label is not None and not m.color:
@@ -356,60 +366,105 @@ def _force(ids: list[Any], edges: list[tuple[Any, Any]], *, seed: int = 1,
     return {i: (pos[i][0], pos[i][1]) for i in ids}
 
 
+def _layout(nodes: list[dict], edges: list[dict], *, kind: str, id: str,
+            source: str, target: str) -> dict[Any, tuple[float, float]]:
+    ids = [nd[id] for nd in nodes]
+    if kind in ("precomputed", "none"):
+        return {nd[id]: (nd["x"], nd["y"]) for nd in nodes}
+    if kind == "circular":
+        return _circular(ids)
+    if kind == "grid":
+        return _grid(ids)
+    idset = set(ids)
+    eidx = [(e[source], e[target]) for e in edges
+            if e.get(source) in idset and e.get(target) in idset]
+    return _force(ids, eidx)
+
+
+class _GraphBuilder:
+    """Returned by :func:`Graph`; renders default layers, or accepts custom ones
+    via ``[...]`` and forwards them to a :func:`Plot`."""
+
+    __slots__ = ("nodes", "edges", "opts")
+
+    def __init__(self, nodes: list[dict], edges: list[dict], opts: dict[str, Any]):
+        self.nodes = nodes
+        self.edges = edges
+        self.opts = opts
+
+    def __getitem__(self, layers: Any) -> Any:
+        return self._build(_flatten(layers))
+
+    def _build(self, layers: list[Mark]) -> Any:
+        o = self.opts
+        nid, src, tgt = o["id"], o["source"], o["target"]
+        pos = _layout(self.nodes, self.edges, kind=o["layout"], id=nid,
+                      source=src, target=tgt)
+        degree: dict[Any, int] = {nd[nid]: 0 for nd in self.nodes}
+        for e in self.edges:
+            for end in (e.get(src), e.get(tgt)):
+                if end in degree:
+                    degree[end] += 1
+        positioned = [
+            {"degree": degree[nd[nid]], **nd,
+             "_x": pos[nd[nid]][0], "_y": pos[nd[nid]][1]}
+            for nd in self.nodes
+        ]
+
+        if not layers:
+            layers = [Link(), Node()]
+        bound: list[Mark] = []
+        for m in layers:
+            if m.data is not None:                      # an explicit-data layer: forward
+                bound.append(m)
+            elif m.kind == "node":
+                bound.append(replace(m, data=positioned, x="_x", y="_y"))
+            elif m.kind == "link":
+                es, et = m.source or src, m.target or tgt
+                segs = []
+                for e in self.edges:
+                    a, b = pos.get(e.get(es)), pos.get(e.get(et))
+                    if a and b:
+                        segs.append({**e, "_x1": a[0], "_y1": a[1],
+                                     "_x2": b[0], "_y2": b[1]})
+                bound.append(replace(m, data=segs, x1="_x1", y1="_y1",
+                                     x2="_x2", y2="_y2"))
+            else:
+                bound.append(m)
+        return Plot(width=o["width"], height=o["height"], axes=False,
+                    interactive=o["interactive"], legend=o["legend"])[bound]
+
+    # renderable on its own (default layers)
+    def __call__(self) -> Any:
+        return self._build([])
+
+    def __str__(self) -> str:
+        return str(self._build([]))
+
+    def iter_chunks(self, context: Any = None) -> Any:
+        return self._build([]).iter_chunks(context)
+
+
 def Graph(nodes: Iterable[dict[str, Any]], edges: Iterable[dict[str, Any]], *,
           layout: str = "force", id: str = "id", source: str = "source",
-          target: str = "target", node_color: str | None = None,
-          node_size: str | float | None = None, node_label: str | None = None,
-          node_fill: str | None = None, edge_color: str | None = None,
-          edge_width: str | float | None = None, directed: bool = False,
-          width: float = 640, height: float = 480, interactive: bool = False,
-          legend: bool | None = None, **attrs: Any) -> Any:
-    """A node-link network diagram — a convenience wrapper that lays the graph
-    out and returns a :func:`Plot` of ``Link`` + ``Node`` marks (see DESIGN §9).
+          target: str = "target", width: float = 640, height: float = 480,
+          interactive: bool = False, legend: bool | None = None) -> _GraphBuilder:
+    """A node-link network — grammar-of-graphics sugar over :func:`Plot`.
 
-    ``layout`` is ``"force"`` | ``"circular"`` | ``"grid"`` | ``"precomputed"``
-    (the last reads ``x``/``y`` off each node). ``node_size="degree"`` sizes nodes
-    by their degree.
+    Compose ``Node`` / ``Link`` layers in ``[...]`` (data omitted → bound to the
+    graph + layout); any layer *with* data is forwarded to the plot unchanged.
+    Each node gets a computed ``degree`` field. ``layout`` is ``"force"`` |
+    ``"circular"`` | ``"grid"`` | ``"precomputed"`` (reads ``x``/``y``)::
+
+        Graph(nodes, edges, layout="force")[
+            Link(directed=True),
+            Node(color="group", size="degree", label="name"),
+        ]
     """
 
-    nodes = list(nodes)
-    edges = list(edges)
-    ids = [nd[id] for nd in nodes]
-
-    if node_size == "degree":
-        deg = {i: 0 for i in ids}
-        for e in edges:
-            for end in (e.get(source), e.get(target)):
-                if end in deg:
-                    deg[end] += 1
-        nodes = [{**nd, "degree": deg[nd[id]]} for nd in nodes]
-
-    if layout in ("precomputed", "none"):
-        pos = {nd[id]: (nd["x"], nd["y"]) for nd in nodes}
-    elif layout == "circular":
-        pos = _circular(ids)
-    elif layout == "grid":
-        pos = _grid(ids)
-    else:
-        idset = set(ids)
-        eidx = [(e[source], e[target]) for e in edges
-                if e.get(source) in idset and e.get(target) in idset]
-        pos = _force(ids, eidx)
-
-    positioned = [{**nd, "_x": pos[nd[id]][0], "_y": pos[nd[id]][1]} for nd in nodes]
-    segments = []
-    for e in edges:
-        a, b = pos.get(e.get(source)), pos.get(e.get(target))
-        if a and b:
-            segments.append({**e, "_x1": a[0], "_y1": a[1], "_x2": b[0], "_y2": b[1]})
-
-    return Plot(width=width, height=height, axes=False, interactive=interactive,
-                legend=legend, **attrs)[
-        Link(segments, x1="_x1", y1="_y1", x2="_x2", y2="_y2",
-             color=edge_color, width=edge_width, directed=directed),
-        Node(positioned, x="_x", y="_y", color=node_color, fill=node_fill,
-             size=node_size, label=node_label),
-    ]
+    opts = dict(layout=layout, id=id, source=source, target=target,
+                width=width, height=height, interactive=interactive, legend=legend)
+    return _GraphBuilder(list(nodes), list(edges), opts)
 
 
 # --- Examples (hand-formatted narrow for the docs; ruff leaves them be) -- #
@@ -459,7 +514,7 @@ def _():
     # fmt: on
 
 
-@Plot.example("Graph (force layout)")
+@Plot.example("Graph (force, layered)")
 def _():
     # fmt: off
     nodes = [
@@ -479,11 +534,15 @@ def _():
     return Graph(
         nodes, edges,
         layout="force",
-        node_color="team",
-        node_size="degree",
-        node_label="id",
         width=420, height=320,
-    )
+    )[
+        Link(),
+        Node(
+            color="team",
+            size="degree",
+            label="id",
+        ),
+    ]
     # fmt: on
 
 
@@ -501,8 +560,9 @@ def _():
     return Graph(
         nodes, edges,
         layout="circular",
-        directed=True,
-        node_label="id",
         width=360, height=320,
-    )
+    )[
+        Link(directed=True),
+        Node(label="id"),
+    ]
     # fmt: on
