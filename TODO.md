@@ -119,8 +119,11 @@ Legend: ✅ done · ⬜ not started
 | `Dot` mark + channels `x`, `y` (linear), `color` (ordinal) | ✅ | ✅ | ✅ |
 | Categorical color palette | ✅ | ✅ | ✅ |
 | Color legend (auto when `color`; `legend=` configurable) | ✅ | ✅ | ✅ |
-| Charts gallery examples | ✅ | ✅ | ✅ |
-| `Graph` (network node-link) — *deferred, spec after Plot* | ⬜ | ⬜ | ⬜ |
+| `Node` / `Link` marks (size, label, width, directed arrowheads) | ✅ | ✅ | ✅ |
+| `Graph` wrapper + layouts (force / circular / grid / precomputed) | ✅ | ✅ | ✅ |
+| `iris-plot.js` — opt-in pan/zoom (`Plot/Graph(interactive=True)`) | ✅ | ✅ | ✅ |
+| Charts gallery examples (scatter + graphs) | ✅ | ✅ | ✅ |
+| Deferred: node drag, curved edges, size legend, tooltips | ⬜ | ⬜ | ⬜ |
 
 ## Interactivity (fixi)
 
