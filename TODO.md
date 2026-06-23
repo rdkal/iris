@@ -120,7 +120,7 @@ Legend: ✅ done · ⬜ not started
 | Categorical color palette | ✅ | ✅ | ✅ |
 | Color legend (auto when `color`; `legend=` configurable) | ✅ | ✅ | ✅ |
 | `Node` / `Link` marks (size, label, width, directed arrowheads) | ✅ | ✅ | ✅ |
-| `Graph` wrapper + layouts (force / circular / grid / precomputed) | ✅ | ✅ | ✅ |
+| `Graph[...]` layers (sugar over Plot; forwards marks) + layouts | ✅ | ✅ | ✅ |
 | `iris-plot.js` — opt-in pan/zoom (`Plot/Graph(interactive=True)`) | ✅ | ✅ | ✅ |
 | Charts gallery examples (scatter + graphs) | ✅ | ✅ | ✅ |
 | Deferred: node drag, curved edges, size legend, tooltips | ⬜ | ⬜ | ⬜ |
