@@ -128,8 +128,9 @@ the htpy `[...]` slot where it holds content.
   with **zero JavaScript**; anchored panels use CSS anchor positioning where
   supported.
 - **Icons:** a small inline-SVG set (stroke icons, themed via `currentColor`)
-- **Charts:** `Plot` (grammar-of-graphics) with `Dot` marks over `x`/`y`/`color`
-  — server-rendered SVG, no JS (see §9)
+- **Charts:** `Plot` (grammar-of-graphics) with `Dot`/`Node`/`Link` marks, and a
+  `Graph` network wrapper built on `Plot` — server-rendered SVG; pan/zoom is
+  opt-in via `iris-plot.js` (see §9)
 
 ---
 
@@ -448,13 +449,49 @@ output is plain, inspectable markup. Pure Python computes the scales and emits
 (hover, zoom) is wanted later it can be layered with fixi or a tiny
 progressive-enhancement script — opt-in, never required.
 
-### Networks / graphs — *later, designed only*
+### Networks / graphs
 
-A `Graph` (node-link network diagram) is planned as a sibling: `Graph(nodes,
-edges)` → server-rendered SVG, same compositional style. The hard part is
-layout; the first version will likely take **precomputed node positions** (or a
-simple deterministic layout) rather than a force simulation, to stay server-side
-and dependency-free. Not started — we'll spec it once `Plot` lands.
+A network is **two tables** (nodes, edges) plus a **layout** that gives each node
+an `(x, y)`. Layout is just the *position scale* for graphs — the analog of
+Plot's x/y scales, derived from structure instead of fields. After that it's the
+same grammar, so graphs are **Plot-unified**: drawn with Plot marks, sharing its
+scales, SVG frame, palette, and legend.
+
+```python
+from iris import Graph
+
+Graph(nodes, edges, layout="force", node_color="group",
+      node_size="degree", edge_width="weight", directed=True)
+```
+
+- **`Graph(nodes, edges, …)`** is a convenience wrapper: it runs the layout,
+  resolves each edge's endpoints to coordinates, and returns a `Plot` built from
+  two marks — so it *is* a Plot underneath.
+- Marks (also usable directly on a `Plot`):
+  - **`Node(points, x=, y=, color=, size=, label=)`** — point mark (Plot's `Dot`
+    plus `size` and `label` channels).
+  - **`Link(segments, x1=, y1=, x2=, y2=, color=, width=, directed=)`** — segment
+    mark; `directed` adds an arrowhead.
+- **Layouts:** `force` (Fruchterman–Reingold, pure Python, seeded/deterministic),
+  `circular`, `grid`, and **precomputed** (nodes carry `x`/`y`). Graph mode draws
+  with **no axes** and **equal aspect** so the layout isn't distorted.
+- **Legend** reuses Plot's (node `color`); deferred: size legend.
+
+### Interactivity: `iris-plot.js` (opt-in)
+
+The static SVG is the baseline. `Plot(interactive=True)` (and `Graph(...,
+interactive=True)`) inlines a tiny first-party **`iris-plot.js`** that adds
+**pan + wheel-zoom** by transforming a `<g>` group — convenience for exploring a
+chart/graph on a small screen, with zero dependencies. It's opt-in and never
+required; everything renders and reads without it. (Deferred: node drag, curved
+edges, tooltips.)
+
+### Mobile
+
+Phones are the awkward case for networks: force layouts crowd and labels overlap.
+Mitigations: responsive `viewBox` + `width:100%`, a minimum node radius/spacing,
+**labels off unless requested**, favouring `circular`/`grid` for small structured
+graphs, and `interactive=True` (pan/zoom) for exploring larger ones.
 
 ---
 

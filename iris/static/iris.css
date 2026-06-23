@@ -471,6 +471,11 @@ textarea.input { min-height: calc(var(--space) * 16); resize: vertical; }
 .plot-tick { fill: var(--muted); font-size: 11px; }
 .plot-label { fill: var(--text); font-size: 12px; }
 .plot-dot { fill: var(--accent); }
+.plot-link { stroke: var(--muted); stroke-opacity: 0.55; }
+.plot-arrow { fill: var(--muted); }
+.plot-node-label { fill: var(--muted); font-size: 10px; }
+.plot-interactive { touch-action: none; cursor: grab; }
+.plot-interactive:active { cursor: grabbing; }
 
 .plot-legend {
   display: flex; flex-wrap: wrap; gap: calc(var(--space) * 2);

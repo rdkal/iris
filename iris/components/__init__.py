@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .charts import Dot, Plot
+from .charts import Dot, Graph, Link, Node, Plot
 from .data import Avatar, Badge, Empty, List, Stat, Table, Tag
 from .feedback import Banner, Progress, Skeleton, Spinner
 from .forms import Button, Checkbox, Field, Form, Input, Select, Switch, Textarea
@@ -75,4 +75,7 @@ __all__ = [
     # charts
     "Plot",
     "Dot",
+    "Node",
+    "Link",
+    "Graph",
 ]
